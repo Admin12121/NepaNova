@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Invoice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      margin: 0;
+    }
+    .invoice-box {
+      background: #fff;
+      max-width: 700px;
+      width: 100%;
+      margin: auto;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      color: #333;
+      overflow-x: auto;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      flex-wrap: wrap;
+    }
+    .header .company-info {
+      font-size: 14px;
+      line-height: 1.6;
+      word-wrap: break-word;
+    }
+    .header .company-info h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #2c3e50;
+    }
+    .logo {
+      width: 80px;
+      height: auto;
+      margin-top: 10px;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+    .invoice-details p {
+      margin: 5px 0;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+      table-layout: fixed;
+    }
+    table thead {
+      background-color: #f8f8f8;
+    }
+    table th, table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    table td img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .totals {
+      margin-top: 20px;
+      float: right;
+      width: 100%;
+      max-width: 300px;
+    }
+    .totals td {
+      padding: 6px;
+      word-wrap: break-word;
+    }
+    .totals .label {
+      text-align: left;
+    }
+    .totals .amount {
+      text-align: right;
+    }
+    .footer {
+      margin-top: 60px;
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-box">
+    <div class="header">
+      <div class="company-info">
+        <h2>Alphasuits</h2>
+        <p>
+          Sundhara, Kathmandu, Nepal<br>
+          Email: info@alphasuits.com.np
+        </p>
+      </div>
+      <div>
+        <img src="https://i.pinimg.com/736x/58/ea/42/58ea42c0fb61157be9263d4db8d1fdd9.jpg" alt="Company Logo" class="logo" />
+      </div>
+    </div>
+
+    <div class="section-title">Invoice Details</div>
+    <div class="invoice-details">
+      <p><strong>Transaction ID:</strong> {{ transactionuid }}</p>
+      <p><strong>Email:</strong> {{ email }}</p>
+      <p><strong>Payment Method:</strong> {{ payment_method }}</p>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>Product</th>
+          <th>Qty</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in products %}
+        <tr>
+          <td><img src="{{ item.image_url }}" /></td>
+          <td>{{ item.product_name }} {{ item.variant_size }}</td>
+          <td>{{ item.pcs }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tr>
+        <td class="label">Subtotal:</td>
+        <td class="amount">
+          {% if payment_method == 'Stripe' %}
+            ${{ sub_total }}
+          {% else %}
+            रु{{ sub_total }}
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="label">Shipping:</td>
+        <td class="amount">
+          {% if payment_method == 'Stripe' %}
+            ${{ shipping }}
+          {% else %}
+            रु{{ shipping }}
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="label">Discount:</td>
+        <td class="amount">
+          {% if payment_method == 'Stripe' %}
+            -${{ discount }}
+          {% else %}
+            -रु{{ discount }}
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="label"><strong>Total:</strong></td>
+        <td class="amount"><strong>
+          {% if payment_method == 'Stripe' %}
+            ${{ total_amt }}
+          {% else %}
+            रु{{ total_amt }}
+          {% endif %}
+        </strong></td>
+      </tr>
+    </table>
+
+    <div class="footer">
+      Thank you for shopping with Alphasuits!<br>
+      For any queries, contact us at info@alphasuits.com.np
+    </div>
+  </div>
+</body>
+</html>

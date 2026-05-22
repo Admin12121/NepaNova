@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Slip - Alphasuits</title>
+</head>
+
+<body style="
+      margin: 0;
+      padding: 0;
+      font-family: Helvetica, Arial, sans-serif;
+      color: #1a1a1a;
+      background-color: #f5f5f5;
+    ">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 20px 0">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+          style="max-width: 650px; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;">
+
+          <!-- Header with Logo -->
+          <tr>
+            <td align="center" style="padding: 30px 20px 10px; background-color: #ffffff;">
+              <img src="https://alphasuits.com.np/assits/bill.webp" alt="Alphasuits Order Slip Header"
+                style="width: 100%; max-width: 600px; height: auto;" />
+            </td>
+          </tr>
+
+          <!-- Bill Number -->
+          <tr>
+            <td style="padding: 0 40px 15px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size: 16px; font-weight: bold; color: #1a1a1a;">
+                    Bill No.: <span style="font-family: monospace; color: #333;">{{ bill_number }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Customer Info -->
+          <tr>
+            <td style="padding: 0 40px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+                <tr>
+                  <td style="padding: 6px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="100" style="font-size: 14px; font-weight: bold; color: #333; vertical-align: top;">
+                          Name:
+                        </td>
+                        <td
+                          style="font-size: 14px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px;">
+                          {{ name }}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="100" style="font-size: 14px; font-weight: bold; color: #333; vertical-align: top;">
+                          Address:
+                        </td>
+                        <td
+                          style="font-size: 14px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px;"
+                          width="55%">
+                          {{ address }}
+                        </td>
+                        <td width="60"
+                          style="font-size: 14px; font-weight: bold; color: #333; text-align: right; vertical-align: top;">
+                          Phone:
+                        </td>
+                        <td
+                          style="font-size: 14px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px;">
+                          {{ phone }}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="120"
+                          style="font-size: 14px; font-weight: bold; color: #333; vertical-align: top;">
+                          Date Ordered:
+                        </td>
+                        <td
+                          style="font-size: 14px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px;">
+                          {{ date_ordered }}
+                        </td>
+                        <td width="80"
+                          style="font-size: 14px; font-weight: bold; color: #333; text-align: right; vertical-align: top;">
+                          Delivery:
+                        </td>
+                        <td
+                          style="font-size: 14px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px;">
+                          {{ date_delivery }}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Items Table -->
+          <tr>
+            <td style="padding: 0 40px 10px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="border-collapse: collapse; border: 1px solid #333;">
+                <!-- Table Header -->
+                <thead>
+                  <tr style="background-color: #f8f8f8;">
+                    <th
+                      style="border: 1px solid #333; padding: 8px 6px; font-size: 13px; font-weight: bold; text-align: center; width: 40px;">
+                      S.N.
+                    </th>
+                    <th
+                      style="border: 1px solid #333; padding: 8px 6px; font-size: 13px; font-weight: bold; text-align: center;">
+                      Description
+                    </th>
+                    <th
+                      style="border: 1px solid #333; padding: 8px 6px; font-size: 13px; font-weight: bold; text-align: center; width: 50px;">
+                      Qty.
+                    </th>
+                    <th
+                      style="border: 1px solid #333; padding: 8px 6px; font-size: 13px; font-weight: bold; text-align: center; width: 70px;">
+                      Rate
+                    </th>
+                    <th colspan="2"
+                      style="border: 1px solid #333; padding: 4px 6px; font-size: 13px; font-weight: bold; text-align: center; width: 120px;">
+                      Amount
+                      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                        <tr>
+                          <td
+                            style="border-top: 1px solid #333; border-right: 1px solid #333; padding: 4px; font-size: 12px; text-align: center; width: 50%;">
+                            Rs.
+                          </td>
+                          <td
+                            style="border-top: 1px solid #333; padding: 4px; font-size: 12px; text-align: center; width: 50%;">
+                            Ps.
+                          </td>
+                        </tr>
+                      </table>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in items %}
+                  <tr>
+                    <td
+                      style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: center;">
+                      {{ item.sn }}
+                    </td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">
+                      {{ item.description }}
+                    </td>
+                    <td
+                      style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: center;">
+                      {{ item.qty }}
+                    </td>
+                    <td
+                      style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: center;">
+                      {{ item.rate }}
+                    </td>
+                    <td
+                      style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: right; width: 60px;">
+                      {{ item.amount_rs }}
+                    </td>
+                    <td
+                      style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: right; width: 60px;">
+                      {{ item.amount_ps }}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                  <!-- Fill empty rows to match the order slip format -->
+                  {% for i in "12345678910" %}
+                  {% if forloop.counter > items|length and forloop.counter <= 10 %}
+                  <tr>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px; text-align: center;">&nbsp;</td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">&nbsp;</td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">&nbsp;</td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">&nbsp;</td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">&nbsp;</td>
+                    <td style="border: 1px solid #333; padding: 6px; font-size: 13px;">&nbsp;</td>
+                  </tr>
+                  {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Amount in Words + Totals -->
+          <tr>
+            <td style="padding: 0 40px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <!-- Amount in Words (Left) -->
+                  <td style="vertical-align: top; padding-right: 15px;" width="55%">
+                    <p style="font-size: 13px; font-weight: bold; color: #333; margin: 0 0 4px;">
+                      Amount in Words:
+                    </p>
+                    <p
+                      style="font-size: 13px; color: #1a1a1a; border-bottom: 1px dotted #999; padding-bottom: 4px; margin: 0 0 4px; min-height: 18px;">
+                      {{ amount_in_words }}
+                    </p>
+                  </td>
+                  <!-- Totals Table (Right) -->
+                  <td style="vertical-align: top;" width="45%">
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                      style="border-collapse: collapse; border: 1px solid #333;">
+                      <tr>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; font-weight: bold;">
+                          Total
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ total_rs }}
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ total_ps }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; font-weight: bold;">
+                          Advance
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ advance_rs }}
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ advance_ps }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; font-weight: bold;">
+                          Balance
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ balance_rs }}
+                        </td>
+                        <td
+                          style="border: 1px solid #333; padding: 6px 10px; font-size: 13px; text-align: right; width: 60px;">
+                          {{ balance_ps }}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Terms & Conditions (Nepali) -->
+          <tr>
+            <td style="padding: 0 40px 15px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border-top: 1px solid #ccc; padding-top: 12px;">
+                <tr>
+                  <td style="font-size: 11px; color: #555; line-height: 1.7;">
+                    ◆ कृपया सामान लिन आउँदा रसिद साथमा लिई आउनु होला ।<br />
+                    ◆ रसिद हराइमा तुरुन्त खबर गर्नु होला अन्यथा कसैले रसिद लिई सामान डेलिभरी लगेमा हामी
+                    जिम्मेवार हुने छैनौ । साथै एक महिना भित्र सामान नलगेमा हामी जिम्मेवार हुने छैन ।<br />
+                    ◆ कपडा पहिलेकै Damage मा हामी जिम्मेवारी लिने छैनौ ।<br />
+                    ◆ विद्युतीय समस्याले डेलिभरी ढिलो हुन पनि सक्नेछ ।<br />
+                    ◆ साटिङ, सुटिङ, कुर्ता, सुरुवाल, कपडा सुथ्र मूल्यमा पाउनुका साथै स्तरीय सिलाई गरिन्छ ।<br />
+                    ◆ सामानको डेलिभरी ४ बजे पछि मात्र हुनेछ ।
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Signature -->
+          <tr>
+            <td style="padding: 0 40px 25px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="right" style="padding-top: 20px;">
+                    <p style="font-size: 12px; color: #999; margin: 0 0 4px;">...............................</p>
+                    <p style="font-size: 14px; font-weight: bold; font-style: italic; color: #333; margin: 0;">
+                      Signature
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="
+                padding: 25px 40px;
+                background-color: #1a1a1a;
+                text-align: center;
+              ">
+              <p style="
+                  font-size: 14px;
+                  color: #ffffff;
+                  margin: 0 0 10px;
+                  line-height: 1.6;
+                ">
+                <strong>Alphasuits</strong><br />
+                Premium Suits</strong>, Coats & Formal Wear
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0">
+                    <a href="https://www.instagram.com/alphasuits0/" target="_blank"
+                      style="text-decoration: none; margin: 0 8px">
+                      <img src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/instagram_96.png"
+                        alt="Instagram" style="width: 24px; height: 24px" />
+                    </a>
+                    <a href="https://www.facebook.com/alphasuits0" target="_blank"
+                      style="text-decoration: none; margin: 0 8px">
+                      <img src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/facebook_96.png"
+                        alt="Facebook" style="width: 24px; height: 24px" />
+                    </a>
+                    <a href="https://www.tiktok.com/@alphasuits0" target="_blank"
+                      style="text-decoration: none; margin: 0 8px">
+                      <img src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/twitter_96.png"
+                        alt="TikTok" style="width: 24px; height: 24px" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="
+                  font-size: 12px;
+                  color: #999;
+                  margin: 10px 0 0;
+                  line-height: 1.5;
+                ">
+                &copy; 2024 Alphasuits. All rights reserved.<br />
+                <a href="https://alphasuits.com.np" style="color: #999; text-decoration: underline">
+                  Visit our website
+                </a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

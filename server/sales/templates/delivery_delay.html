@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Delivery Update - Alphasuits</title>
+    </head>
+
+    <body
+        style="
+            margin: 0;
+            padding: 0;
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1a1a1a;
+            background-color: #f5f5f5;
+        "
+    >
+        <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="background-color: #f5f5f5; padding: 20px 0"
+        >
+            <tr>
+                <td align="center">
+                    <table
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                        style="
+                            max-width: 600px;
+                            background-color: #ffffff;
+                            border-radius: 8px;
+                            overflow: hidden;
+                        "
+                    >
+                        <!-- Logo Section -->
+                        <tr>
+                            <td
+                                align="center"
+                                style="
+                                    padding: 40px 20px 30px;
+                                    background: linear-gradient(
+                                        135deg,
+                                        #1a1a1a 0%,
+                                        #2d2d2d 100%
+                                    );
+                                "
+                            >
+                                <img
+                                    src="https://alphasuits.com.np/logo.png"
+                                    alt="Alphasuits Logo"
+                                    style="
+                                        width: 200px;
+                                        max-width: 100%;
+                                        height: auto;
+                                    "
+                                />
+                            </td>
+                        </tr>
+
+                        <!-- Header -->
+                        <tr>
+                            <td align="center" style="padding: 30px 20px 10px">
+                                <h1
+                                    style="
+                                        font-size: 26px;
+                                        font-weight: bold;
+                                        margin: 0 0 10px;
+                                        color: #1a1a1a;
+                                    "
+                                >
+                                    Delivery Update &#x1F4E6;
+                                </h1>
+                                <p
+                                    style="
+                                        font-size: 16px;
+                                        line-height: 1.6;
+                                        color: #666;
+                                        margin: 0;
+                                    "
+                                >
+                                    An update on your order #{{ transactionuid
+                                    }}
+                                </p>
+                            </td>
+                        </tr>
+
+                        <!-- Greeting -->
+                        <tr>
+                            <td style="padding: 20px 40px 10px">
+                                <p
+                                    style="
+                                        font-size: 16px;
+                                        line-height: 1.6;
+                                        color: #333;
+                                        margin: 0 0 15px;
+                                    "
+                                >
+                                    Dear
+                                    <strong>{{ first_name }}</strong>,
+                                </p>
+                                <p
+                                    style="
+                                        font-size: 16px;
+                                        line-height: 1.6;
+                                        color: #333;
+                                        margin: 0 0 15px;
+                                    "
+                                >
+                                    We sincerely apologize, but your order
+                                    delivery has been delayed due to unforeseen
+                                    circumstances. We understand how important
+                                    timely delivery is and we're doing
+                                    everything we can to get your order to you
+                                    as quickly as possible.
+                                </p>
+                                {% if delay_reason %}
+                                <div
+                                    style="
+                                        background-color: #fef9ef;
+                                        border-left: 4px solid #c8956c;
+                                        padding: 14px 18px;
+                                        margin: 10px 0 15px;
+                                        border-radius: 4px;
+                                    "
+                                >
+                                    <p
+                                        style="
+                                            font-size: 13px;
+                                            font-weight: 600;
+                                            color: #8a6540;
+                                            margin: 0 0 4px;
+                                            text-transform: uppercase;
+                                            letter-spacing: 0.5px;
+                                        "
+                                    >
+                                        Reason
+                                    </p>
+                                    <p
+                                        style="
+                                            font-size: 15px;
+                                            line-height: 1.5;
+                                            color: #555;
+                                            margin: 0;
+                                        "
+                                    >
+                                        {{ delay_reason }}
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- New Delivery Date Box -->
+                        <tr>
+                            <td align="center" style="padding: 10px 40px 20px">
+                                <table
+                                    width="100%"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                    border="0"
+                                    style="
+                                        background-color: #f8f8f8;
+                                        border-radius: 8px;
+                                        border: 2px solid #1a1a1a;
+                                    "
+                                >
+                                    <tr>
+                                        <td
+                                            align="center"
+                                            style="padding: 25px 20px"
+                                        >
+                                            <p
+                                                style="
+                                                    font-size: 14px;
+                                                    color: #666;
+                                                    margin: 0 0 8px;
+                                                    text-transform: uppercase;
+                                                    letter-spacing: 1px;
+                                                    font-weight: 600;
+                                                "
+                                            >
+                                                New Expected Delivery Date
+                                            </p>
+                                            <p
+                                                style="
+                                                    font-size: 28px;
+                                                    font-weight: bold;
+                                                    color: #1a1a1a;
+                                                    margin: 0;
+                                                "
+                                            >
+                                                {{ new_delivery_date }}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Apology Note -->
+                        <tr>
+                            <td style="padding: 0 40px 20px">
+                                <table
+                                    width="100%"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                    border="0"
+                                    style="
+                                        background-color: #fff9e6;
+                                        border-radius: 6px;
+                                        border-left: 4px solid #ffc107;
+                                    "
+                                >
+                                    <tr>
+                                        <td style="padding: 15px 20px">
+                                            <p
+                                                style="
+                                                    font-size: 14px;
+                                                    color: #333;
+                                                    margin: 0;
+                                                    line-height: 1.6;
+                                                "
+                                            >
+                                                &#x1F64F;
+                                                <strong
+                                                    >We're sorry for the
+                                                    inconvenience.</strong
+                                                >
+                                                We value your patience and
+                                                appreciate your understanding.
+                                                Rest assured, your order is
+                                                being handled with the utmost
+                                                care.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Track Order CTA -->
+                        <tr>
+                            <td align="center" style="padding: 0 40px 30px">
+                                <p
+                                    style="
+                                        font-size: 14px;
+                                        color: #666;
+                                        margin: 0 0 12px;
+                                    "
+                                >
+                                    You can track your order status anytime
+                                </p>
+                                <a
+                                    href="https://alphasuits.com.np/orders"
+                                    target="_blank"
+                                    style="
+                                        display: inline-block;
+                                        background-color: #1a1a1a;
+                                        color: #ffffff;
+                                        padding: 14px 36px;
+                                        text-decoration: none;
+                                        border-radius: 4px;
+                                        font-size: 15px;
+                                        font-weight: 600;
+                                        letter-spacing: 0.5px;
+                                    "
+                                >
+                                    Track My Order
+                                </a>
+                            </td>
+                        </tr>
+
+                        <!-- Contact Section -->
+                        <tr>
+                            <td style="padding: 0 40px 30px">
+                                <table
+                                    width="100%"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                    border="0"
+                                    style="
+                                        background-color: #f0f0f0;
+                                        border-radius: 6px;
+                                    "
+                                >
+                                    <tr>
+                                        <td
+                                            style="
+                                                padding: 20px;
+                                                text-align: center;
+                                            "
+                                        >
+                                            <p
+                                                style="
+                                                    font-size: 14px;
+                                                    color: #666;
+                                                    margin: 0 0 10px;
+                                                "
+                                            >
+                                                Have questions about your order?
+                                            </p>
+                                            <p
+                                                style="
+                                                    font-size: 14px;
+                                                    color: #1a1a1a;
+                                                    margin: 0;
+                                                "
+                                            >
+                                                <strong>Contact us:</strong>
+                                                <a
+                                                    href="mailto:info@alphasuits.com.np"
+                                                    style="
+                                                        color: #1a1a1a;
+                                                        text-decoration: underline;
+                                                    "
+                                                    >info@alphasuits.com.np</a
+                                                >
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td
+                                style="
+                                    padding: 30px 40px;
+                                    background-color: #1a1a1a;
+                                    text-align: center;
+                                "
+                            >
+                                <p
+                                    style="
+                                        font-size: 14px;
+                                        color: #ffffff;
+                                        margin: 0 0 15px;
+                                        line-height: 1.6;
+                                    "
+                                >
+                                    <strong>Alphasuits</strong><br />
+                                    Premium Suits, Coats &amp; Formal Wear
+                                </p>
+
+                                <table
+                                    width="100%"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                    border="0"
+                                >
+                                    <tr>
+                                        <td
+                                            align="center"
+                                            style="padding: 10px 0"
+                                        >
+                                            <a
+                                                href="https://www.instagram.com/alphasuits0/"
+                                                target="_blank"
+                                                style="
+                                                    text-decoration: none;
+                                                    margin: 0 8px;
+                                                "
+                                            >
+                                                <img
+                                                    src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/instagram_96.png"
+                                                    alt="Instagram"
+                                                    style="
+                                                        width: 24px;
+                                                        height: 24px;
+                                                    "
+                                                />
+                                            </a>
+                                            <a
+                                                href="https://www.facebook.com/alphasuits0"
+                                                target="_blank"
+                                                style="
+                                                    text-decoration: none;
+                                                    margin: 0 8px;
+                                                "
+                                            >
+                                                <img
+                                                    src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/facebook_96.png"
+                                                    alt="Facebook"
+                                                    style="
+                                                        width: 24px;
+                                                        height: 24px;
+                                                    "
+                                                />
+                                            </a>
+                                            <a
+                                                href="https://www.tiktok.com/@alphasuits0"
+                                                target="_blank"
+                                                style="
+                                                    text-decoration: none;
+                                                    margin: 0 8px;
+                                                "
+                                            >
+                                                <img
+                                                    src="https://d3k81ch9hvuctc.cloudfront.net/assets/email/buttons/white/twitter_96.png"
+                                                    alt="TikTok"
+                                                    style="
+                                                        width: 24px;
+                                                        height: 24px;
+                                                    "
+                                                />
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p
+                                    style="
+                                        font-size: 12px;
+                                        color: #999;
+                                        margin: 15px 0 0;
+                                        line-height: 1.5;
+                                    "
+                                >
+                                    &copy; 2024 Alphasuits. All rights
+                                    reserved.<br />
+                                    <a
+                                        href="https://alphasuits.com.np"
+                                        style="
+                                            color: #999;
+                                            text-decoration: underline;
+                                        "
+                                    >
+                                        Visit our website
+                                    </a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

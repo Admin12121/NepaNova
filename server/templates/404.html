@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚠️ 404 - ACCESS DENIED | Security Monitor Active</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #ff3333;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15) 0px,
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanlines 0.1s linear infinite;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(2px); }
+        }
+
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+            animation: glitch-flash 8s ease-in-out infinite;
+        }
+
+        @keyframes glitch-flash {
+            0%, 95%, 100% { opacity: 0; }
+            96% { opacity: 0.08; background: #ff0000; }
+            97% { opacity: 0; }
+            98% { opacity: 0.05; background: #00ff00; }
+        }
+
+        .warning-banner {
+            background: repeating-linear-gradient(
+                45deg,
+                #1a1a00,
+                #1a1a00 10px,
+                #0d0d00 10px,
+                #0d0d00 20px
+            );
+            border-top: 3px solid #ff6600;
+            border-bottom: 3px solid #ff6600;
+            padding: 12px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .warning-banner::before {
+            content: '⚠ ';
+            color: #ffcc00;
+            font-size: 1.2em;
+        }
+
+        .warning-banner::after {
+            content: ' ⚠';
+            color: #ffcc00;
+            font-size: 1.2em;
+        }
+
+        .warning-text {
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: warning-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+
+        .error-code {
+            font-size: 120px;
+            font-weight: bold;
+            color: #ff0033;
+            text-shadow: 0 0 20px rgba(255, 0, 51, 0.5),
+                         0 0 40px rgba(255, 0, 51, 0.3),
+                         0 0 80px rgba(255, 0, 51, 0.1);
+            letter-spacing: 15px;
+            animation: error-glow 2s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        .error-code::after {
+            content: '404';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            color: #00ffff;
+            opacity: 0.1;
+            animation: glitch-text 3s ease-in-out infinite;
+        }
+
+        @keyframes error-glow {
+            0% { text-shadow: 0 0 20px rgba(255, 0, 51, 0.5), 0 0 40px rgba(255, 0, 51, 0.3); }
+            100% { text-shadow: 0 0 30px rgba(255, 0, 51, 0.8), 0 0 60px rgba(255, 0, 51, 0.5), 0 0 100px rgba(255, 0, 51, 0.2); }
+        }
+
+        @keyframes glitch-text {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 1px); }
+            94% { transform: translate(2px, -1px); }
+            96% { transform: translate(-1px, -1px); }
+            98% { transform: translate(1px, 2px); }
+        }
+
+        .subtitle {
+            color: #ff6633;
+            font-size: 18px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .monitor-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #1a0000, #330000);
+            border: 2px solid #ff3333;
+            border-radius: 8px;
+            padding: 15px 30px;
+            margin: 25px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .monitor-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 40%,
+                rgba(255, 0, 0, 0.03) 50%,
+                transparent 60%
+            );
+            animation: sweep 3s linear infinite;
+        }
+
+        @keyframes sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .monitor-badge .eye-icon {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .monitor-badge .monitor-label {
+            color: #ff4444;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .recording-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #ff0000;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: rec-blink 1s ease-in-out infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes rec-blink {
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px #ff0000; }
+            50% { opacity: 0.3; box-shadow: 0 0 2px #ff0000; }
+        }
+
+        .device-panel {
+            background: linear-gradient(180deg, #0d1117, #161b22);
+            border: 1px solid #ff333366;
+            border-radius: 8px;
+            margin: 25px 0;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.05);
+        }
+
+        .panel-header {
+            background: linear-gradient(90deg, #1a0000, #330011, #1a0000);
+            padding: 12px 20px;
+            border-bottom: 1px solid #ff333344;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header-icon {
+            color: #ff6633;
+            font-size: 18px;
+        }
+
+        .panel-header-text {
+            color: #ff9966;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .panel-body {
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #ffffff08;
+            align-items: flex-start;
+            transition: background 0.2s;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-row:hover {
+            background: rgba(255, 0, 0, 0.02);
+        }
+
+        .info-label {
+            color: #888;
+            min-width: 180px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-top: 2px;
+        }
+
+        .info-value {
+            color: #00ff88;
+            font-size: 13px;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .info-value.danger {
+            color: #ff4444;
+        }
+
+        .info-value.warning {
+            color: #ffaa00;
+        }
+
+        .threat-section {
+            background: linear-gradient(180deg, #1a0505, #0d0000);
+            border: 1px solid #ff000044;
+            border-radius: 8px;
+            margin: 25px 0;
+            overflow: hidden;
+        }
+
+        .threat-header {
+            background: #ff000015;
+            padding: 12px 20px;
+            border-bottom: 1px solid #ff000033;
+        }
+
+        .threat-header-text {
+            color: #ff3333;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .threat-body {
+            padding: 20px;
+        }
+
+        .threat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            color: #cc6666;
+            font-size: 12px;
+        }
+
+        .threat-icon {
+            font-size: 16px;
+        }
+
+        .message-box {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            border: 1px dashed #ff333344;
+            border-radius: 8px;
+            background: #0a0000;
+        }
+
+        .message-box p {
+            color: #cc4444;
+            font-size: 13px;
+            line-height: 1.8;
+            margin: 8px 0;
+        }
+
+        .message-box .highlight {
+            color: #ff6633;
+            font-weight: bold;
+        }
+
+        .legal-notice {
+            text-align: center;
+            margin: 30px 0;
+            padding: 15px;
+            color: #555;
+            font-size: 10px;
+            letter-spacing: 1px;
+            line-height: 1.8;
+            border-top: 1px solid #222;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+        }
+
+        .fingerprint-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            margin-top: 15px;
+        }
+
+        .fp-cell {
+            background: #0a0f0a;
+            border: 1px solid #00ff8811;
+            padding: 8px 12px;
+            font-size: 11px;
+        }
+
+        .fp-cell .fp-label {
+            color: #555;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .fp-cell .fp-value {
+            color: #00cc66;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #0d0d0d;
+            border-top: 1px solid #ff333344;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            font-size: 11px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ff4444;
+        }
+
+        .status-right {
+            color: #666;
+        }
+
+        .typing-effect {
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typing 2s steps(40) 1s forwards;
+            width: 0;
+            display: inline-block;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .pulse-border {
+            animation: border-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes border-pulse {
+            0%, 100% { border-color: #ff333366; }
+            50% { border-color: #ff3333cc; }
+        }
+
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 72px;
+            }
+
+            .fingerprint-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .info-label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas class="matrix-bg" id="matrixCanvas"></canvas>
+    <div class="glitch-overlay"></div>
+
+    <!-- Warning Banner -->
+    <div class="warning-banner">
+        <span class="warning-text">⛔ UNAUTHORIZED ACCESS ATTEMPT DETECTED — SECURITY SYSTEM ACTIVE ⛔</span>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="error-code">404</div>
+            <div class="subtitle">Page Not Found</div>
+
+            <div class="monitor-badge pulse-border">
+                <span class="eye-icon">👁️‍🗨️</span>
+                <span class="recording-dot"></span>
+                <span class="monitor-label">YOU ARE BEING MONITORED</span>
+            </div>
+        </div>
+
+        <!-- Device Information Panel -->
+        <div class="device-panel">
+            <div class="panel-header">
+                <span class="panel-header-icon">🔍</span>
+                <span class="panel-header-text">Your Device Fingerprint — Captured</span>
+            </div>
+            <div class="panel-body">
+                <div class="info-row">
+                    <span class="info-label">🌐 IP Address</span>
+                    <span class="info-value danger" id="ip-address">{{ ip_address }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📡 User Agent</span>
+                    <span class="info-value" id="user-agent">{{ user_agent }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔗 Requested Path</span>
+                    <span class="info-value warning" id="request-path">{{ request_path }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📋 Request Method</span>
+                    <span class="info-value" id="request-method">{{ request_method }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🌍 Referer</span>
+                    <span class="info-value" id="referer">{{ referer }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔤 Accept Language</span>
+                    <span class="info-value" id="accept-lang">{{ accept_language }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📦 Accept Encoding</span>
+                    <span class="info-value" id="accept-enc">{{ accept_encoding }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔒 Connection Type</span>
+                    <span class="info-value" id="connection">{{ connection_type }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🕐 Server Timestamp</span>
+                    <span class="info-value" id="timestamp">{{ timestamp }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🏷️ Host</span>
+                    <span class="info-value" id="host">{{ host }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔑 Session ID</span>
+                    <span class="info-value danger" id="session-hash">{{ session_hash }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Browser Fingerprint Grid (JS-collected) -->
+        <div class="device-panel">
+            <div class="panel-header">
+                <span class="panel-header-icon">🖥️</span>
+                <span class="panel-header-text">Client-Side Fingerprint — Collected</span>
+            </div>
+            <div class="panel-body">
+                <div class="fingerprint-grid" id="fingerprint-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Information -->
+        <div class="threat-section">
+            <div class="threat-header">
+                <span class="threat-header-text">🛡️ SECURITY MEASURES ACTIVE</span>
+            </div>
+            <div class="threat-body">
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Request fingerprinting and anomaly detection — <strong>ACTIVE</strong></span>
+                </div>
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Proxy & interception tool detection (Burp Suite, OWASP ZAP, Fiddler) — <strong>ACTIVE</strong></span>
+                </div>
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Header manipulation & payload tampering detection — <strong>ACTIVE</strong></span>
+                </div>
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Request integrity verification — <strong>ACTIVE</strong></span>
+                </div>
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Automated bot & scanner detection — <strong>ACTIVE</strong></span>
+                </div>
+                <div class="threat-item">
+                    <span class="threat-icon">✅</span>
+                    <span>Rate limiting & behavioral analysis — <strong>ACTIVE</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Message -->
+        <div class="message-box">
+            <p></p>🚨 <span class="highlight">This page does not exist.</span></p>
+            <p>Your access attempt has been <span class="highlight">logged and fingerprinted</span>.</p>
+            <p>All request headers, device data, and network information have been <span class="highlight">captured</span>.</p>
+            <p>Any attempt to <span class="highlight">intercept, modify, or replay</span> requests will be detected.</p>
+            <p>Tampering tools such as <span class="highlight">Burp Suite, OWASP ZAP, Fiddler, or custom proxies</span> are flagged.</p>
+            <p style="margin-top: 20px; color: #ff3333; font-size: 14px; font-weight: bold;">
+                ⚠️ UNAUTHORIZED ACCESS IS A CRIMINAL OFFENSE ⚠️
+            </p>
+        </div>
+
+        <!-- Legal Notice -->
+        <div class="legal-notice">
+            <p>THIS SYSTEM IS PROTECTED. UNAUTHORIZED ACCESS, ATTEMPTED ACCESS, OR USE OF THIS SYSTEM<br>
+            MAY SUBJECT YOU TO CRIMINAL AND CIVIL PENALTIES UNDER APPLICABLE LAW.<br>
+            ALL ACTIVITIES ARE MONITORED AND RECORDED. EVIDENCE OF UNAUTHORIZED USE<br>
+            MAY BE PROVIDED TO LAW ENFORCEMENT AUTHORITIES.<br><br>
+            SESSION: {{ session_hash }} | TRACE: {{ trace_id }}</p>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span class="recording-dot"></span>
+            <span>SECURITY MONITOR ACTIVE</span>
+        </div>
+        <div class="status-right">
+            <span id="live-clock"></span>
+        </div>
+    </div>
+
+    <script>
+        // Matrix rain background
+        (function() {
+            const canvas = document.getElementById('matrixCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+            const fontSize = 12;
+            const columns = canvas.width / fontSize;
+            const drops = Array(Math.floor(columns)).fill(1);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff3333';
+                ctx.font = fontSize + 'px monospace';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+
+            setInterval(draw, 50);
+
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        })();
+
+        // Collect client-side fingerprint
+        (function() {
+            const grid = document.getElementById('fingerprint-grid');
+            const data = {};
+
+            data['Screen Resolution'] = window.screen.width + ' x ' + window.screen.height;
+            data['Color Depth'] = window.screen.colorDepth + '-bit';
+            data['Pixel Ratio'] = window.devicePixelRatio || 'N/A';
+            data['Platform'] = navigator.platform || 'N/A';
+            data['Language'] = navigator.language || 'N/A';
+            data['Languages'] = (navigator.languages || []).join(', ') || 'N/A';
+            data['Timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone || 'N/A';
+            data['TZ Offset'] = 'UTC' + (new Date().getTimezoneOffset() > 0 ? '-' : '+') + Math.abs(new Date().getTimezoneOffset() / 60);
+            data['Cookies Enabled'] = navigator.cookieEnabled ? 'Yes' : 'No';
+            data['Do Not Track'] = navigator.doNotTrack || 'Not Set';
+            data['Online Status'] = navigator.onLine ? 'Online' : 'Offline';
+            data['CPU Cores'] = navigator.hardwareConcurrency || 'N/A';
+            data['Device Memory'] = (navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'N/A');
+            data['Max Touch Points'] = navigator.maxTouchPoints || '0';
+            data['WebDriver'] = navigator.webdriver ? '⚠ DETECTED' : 'Not Detected';
+            data['PDF Viewer'] = navigator.pdfViewerEnabled ? 'Yes' : 'No';
+
+            try {
+                const c = document.createElement('canvas');
+                const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    data['GPU Vendor'] = debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'N/A';
+                    data['GPU Renderer'] = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'N/A';
+                } else {
+                    data['GPU'] = 'WebGL not available';
+                }
+            } catch(e) {
+                data['GPU'] = 'Detection blocked';
+            }
+
+            // Connection info
+            if (navigator.connection) {
+                data['Connection Type'] = navigator.connection.effectiveType || 'N/A';
+                data['Downlink'] = (navigator.connection.downlink || 'N/A') + ' Mbps';
+                data['RTT'] = (navigator.connection.rtt || 'N/A') + ' ms';
+            }
+
+            // Storage check
+            data['Local Storage'] = (function() { try { localStorage.setItem('_t', '1'); localStorage.removeItem('_t'); return 'Available'; } catch(e) { return 'Blocked'; } })();
+            data['Session Storage'] = (function() { try { sessionStorage.setItem('_t', '1'); sessionStorage.removeItem('_t'); return 'Available'; } catch(e) { return 'Blocked'; } })();
+
+            // Populate grid
+            for (const [label, value] of Object.entries(data)) {
+                const cell = document.createElement('div');
+                cell.className = 'fp-cell';
+
+                const isAlert = (typeof value === 'string') && value.includes('DETECTED');
+
+                cell.innerHTML = '<div class="fp-label">' + label + '</div>' +
+                    '<div class="fp-value" style="' + (isAlert ? 'color: #ff3333; font-weight: bold;' : '') + '">' + value + '</div>';
+                grid.appendChild(cell);
+            }
+
+            // Send fingerprint to monitoring endpoint (fire and forget)
+            try {
+                const payload = {
+                    fingerprint: data,
+                    url: window.location.href,
+                    timestamp: new Date().toISOString(),
+                    viewport: window.innerWidth + 'x' + window.innerHeight
+                };
+
+                navigator.sendBeacon('/api/security/monitor/', JSON.stringify(payload));
+            } catch(e) {
+                // Silent fail
+            }
+        })();
+
+        // Live clock
+        (function() {
+            const clockEl = document.getElementById('live-clock');
+            function updateClock() {
+                const now = new Date();
+                clockEl.textContent = now.toISOString().replace('T', ' ').split('.')[0] + ' UTC';
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        })();
+
+        // Disable right-click and common shortcuts
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+            }
+        });
+
+        // Console warning
+        console.log('%c⚠️ SECURITY WARNING', 'color: #ff0000; font-size: 40px; font-weight: bold; text-shadow: 2px 2px #000;');
+        console.log('%cYou are being monitored. All activities in this console are logged.\nUnauthorized access attempts will be reported to law enforcement.', 'color: #ff6633; font-size: 16px;');
+        console.log('%cIf you are a developer, leave now. This is not the place for you.', 'color: #ffcc00; font-size: 14px;');
+    </script>
+</body>
+</html>
