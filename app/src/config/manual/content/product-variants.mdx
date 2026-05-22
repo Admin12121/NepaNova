@@ -1,0 +1,321 @@
+# Product Variants (Multi-Variant Products)
+
+Product variants allow you to sell a **single product in multiple sizes, colors, and price points** — all from one product listing. Instead of creating separate products for every size and color combination, you define them as variants under one product. This keeps your store organized and gives customers a smooth selection experience.
+
+---
+
+## What Are Product Variants?
+
+A variant is a specific version of a product defined by a combination of:
+
+- **Size** — e.g., S, M, L, XL, XXL, 3XL
+- **Color** — e.g., Navy, Black, White (with hex color codes)
+- **Price** — each variant can have its own price
+- **Stock** — each variant tracks its own inventory separately
+- **Discount** — each variant can have a different discount percentage
+
+For example, a "Luxury Coat" might have these variants:
+
+| Size | Color | Price | Stock | Discount |
+|---|---|---|---|---|
+| 3XL | Navy (#1F3F60) | Rs 15,000 | 5 | 10% |
+| XXL | Black (#1F2937) | Rs 14,000 | 6 | 10% |
+| 3XL | White (#FFFFFF) | Rs 15,000 | 5 | 10% |
+
+Each of these is a separate variant with its own inventory and pricing, but they all belong to the same product listing.
+
+---
+
+## When to Use Multi-Variant vs Single Variant
+
+| Scenario | Use This |
+|---|---|
+| A basic accessory with no size or color options (e.g., a tie clip) | **Single Variant** |
+| A shirt available in S, M, L sizes but only one color | **Multi Variant** |
+| A coat available in 3 different colors | **Multi Variant** |
+| A suit available in multiple size-and-color combinations | **Multi Variant** |
+| A one-of-a-kind custom item | **Single Variant** |
+
+**Rule of thumb:** If a customer needs to choose a size or color before purchasing, you need **Multi Variant**.
+
+---
+
+## Setting Up Multi-Variant Products — Step by Step
+
+### Step 1: Select Multi Variant Product Type
+
+1. On the **Add Product** page, scroll down to the **Product Type** section
+2. You will see two buttons: **Single Variant** (selected by default, highlighted in purple) and **Multi Variant**
+3. Click **Multi Variant** — it will become highlighted in purple
+4. The **Pricing And Stock** section below will change to show the variant management interface
+
+<ManualImage src="/docs/multi_varient_product.jpeg" alt="Multi-variant product setup" caption="A fully configured multi-variant product showing three variants with different sizes, colors, prices, stock levels, and discounts. Notice how each variant has its own row with independent settings." />
+
+---
+
+### Step 2: Add Your First Variant
+
+When you select Multi Variant, the Pricing And Stock section shows fields for your first variant:
+
+#### Size (optional)
+
+- Enter the size label for this variant
+- Examples: `S`, `M`, `L`, `XL`, `XXL`, `3XL`, `42`, `44`, `Free Size`
+- This field is **optional** — if your product only varies by color (not size), you can leave it empty
+
+> **Tip:** Use consistent size labels across all your products. If you use "XL" for one product, don't use "Extra Large" for another. Consistency helps customers know what to expect.
+
+#### Color (optional)
+
+- Click the **color field** to open the color picker
+- You can either:
+  - Pick a color visually from the color picker
+  - Type a specific **hex color code** (e.g., `#1F3F60` for Navy)
+- The color name will be displayed alongside the hex code (e.g., "Navy (#1F3F60)")
+- Click the **X** button to remove the color from this variant
+- This field is **optional** — if your product only varies by size (not color), you can leave it empty
+
+> **Important:** The hex color code is what appears on the customer-facing product page as a color selector dot. Choose accurate hex codes that truly represent the product's color. If the coat is navy, use a navy hex code, not a generic blue.
+
+#### Price
+
+- Enter the **selling price** for this specific variant in Rs
+- Example: `15000`
+- Each variant can have a different price (e.g., larger sizes might cost more due to more material)
+
+#### Stock
+
+- Enter the **number of units available** for this specific variant
+- Example: `5`
+- This is tracked independently per variant — when this variant's stock reaches 0, it shows as "Out of Stock" even if other variants still have stock
+
+#### Discount
+
+- Enter the **discount percentage** for this variant
+- Example: `10` (for 10% off)
+- Enter `0` for no discount
+- The discount is calculated on this variant's price — so a 10% discount on Rs 15,000 = Rs 13,500 sale price
+
+---
+
+### Step 3: Add More Variants
+
+To add additional variants:
+
+1. Scroll down past your first variant's fields
+2. Click the **Add Variant** button at the bottom of the Pricing And Stock section
+3. A new set of fields (Size, Color, Price, Stock, Discount) will appear below the existing variant
+4. Fill in the details for this new variant
+5. Repeat for as many variants as you need
+
+You can add as many variants as your product requires. A typical clothing item might have 3-10 variants (multiple sizes in 2-3 colors).
+
+---
+
+### Step 4: Remove a Variant
+
+If you need to remove a variant you have added:
+
+1. Find the variant row you want to remove
+2. Click the **red delete button** (red circle with a trash/delete icon) on the right side of that variant's row
+3. The variant and all its fields will be removed immediately
+
+> **Warning:** Removing a variant is immediate and cannot be undone. Double-check before clicking the delete button, especially on existing products that might have active orders for that variant.
+
+---
+
+## Understanding the Variant Layout
+
+Here is how the variant section looks when fully filled out:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Size (optional)          │ Color (optional)             │
+│ ┌─────────────────────┐  │ ┌──────────────────────────┐ │
+│ │ 3XL                 │  │ │ 🟦 Navy (#1F3F60)    ✕  │ │
+│ └─────────────────────┘  │ └──────────────────────────┘ │
+│                                                         │
+│ Price        │ Stock     │ Discount    │                 │
+│ ┌──────────┐ │ ┌───────┐ │ ┌─────────┐ │  🗑️            │
+│ │ 15000    │ │ │ 5     │ │ │ 10      │ │                │
+│ └──────────┘ │ └───────┘ │ └─────────┘ │                │
+├─────────────────────────────────────────────────────────┤
+│ Size (optional)          │ Color (optional)             │
+│ ┌─────────────────────┐  │ ┌──────────────────────────┐ │
+│ │ XXL                 │  │ │ ⬛ Black (#1F2937)   ✕   │ │
+│ └─────────────────────┘  │ └──────────────────────────┘ │
+│                                                         │
+│ Price        │ Stock     │ Discount    │                 │
+│ ┌──────────┐ │ ┌───────┐ │ ┌─────────┐ │  🗑️            │
+│ │ 14000    │ │ │ 6     │ │ │ 10      │ │                │
+│ └──────────┘ │ └───────┘ │ └─────────┘ │                │
+├─────────────────────────────────────────────────────────┤
+│                    [ Add Variant ]                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+Each variant is a self-contained row with all its own properties.
+
+---
+
+## Connecting Images to Color Variants
+
+One of the most important features of multi-variant products is **tagging images with colors**. When you have multiple color variants and upload product images, each image can be assigned to a specific color.
+
+### How to Tag Images
+
+1. Upload your product images in the **Images** section (right side of the page)
+2. After uploading, you will see **small colored circles** appear on each image thumbnail
+3. These circles represent the colors you defined in your variants (e.g., Navy, Black, White)
+4. Click on a color circle to **tag** that image with that color
+5. The tagged color will be highlighted/selected on the image
+
+### Example
+
+Looking at the screenshot:
+
+<ManualImage src="/docs/multi_varient_product.jpeg" alt="Color-tagged images" caption="Images tagged with color variants — the first image shows Navy (blue circles), while other thumbnails show Black and White color tags" />
+
+In this example:
+- The main product image is tagged with **Navy** (shown by the blue color circles)
+- The smaller thumbnails below show different images tagged with **Black** and **White**
+- When a customer selects "Navy" on the product page, they will only see the Navy-tagged images
+- When they switch to "Black", the gallery updates to show only the Black-tagged images
+
+> **Tip:** For the best customer experience, upload at least 2 images per color variant — one front view and one lifestyle/angle shot. This way, every color selection has meaningful images to show.
+
+---
+
+## How Variants Appear to Customers
+
+When a customer visits a multi-variant product page, they will see:
+
+1. **Color selector** — Colored dots representing each available color. The customer clicks a dot to select that color.
+2. **Size selector** — Size buttons (e.g., S, M, L, XL) that show only the sizes available in the selected color.
+3. **Price update** — The displayed price updates to match the selected variant's price.
+4. **Stock check** — If the selected variant is out of stock, the customer sees "Out of Stock" and cannot add it to cart.
+5. **Image gallery** — The images update to show only photos tagged with the selected color.
+
+This creates a seamless shopping experience where everything on the page reflects the customer's current selection.
+
+<ManualImage src="/docs/customer_view_product.jpeg" alt="Customer view of product with variants" caption="How customers see the product page — they can select colors and sizes, and the gallery, price, and availability all update based on their selection" />
+
+---
+
+## Complete Example: Creating a Multi-Variant Product
+
+Let's walk through creating a "Luxury Coat" available in three size-color combinations:
+
+### 1. General Information
+- **Product Name:** `Luxury Coat`
+- **Description:**
+  ```
+  ## Design Details
+  - Collar    : Classic lapel
+  - Closure   : Button front
+  - Pockets   : Two side pockets
+  - Style     : Minimal, modern luxury
+
+  ## Care Instructions
+  - Cleaning  : Dry clean only
+  - Storage   : Hang on padded hanger
+  ```
+
+### 2. Product Type
+- Select **Multi Variant**
+
+### 3. Variant 1
+- **Size:** `3XL`
+- **Color:** Navy (`#1F3F60`)
+- **Price:** `15000`
+- **Stock:** `5`
+- **Discount:** `10`
+
+### 4. Variant 2
+- Click **Add Variant**
+- **Size:** `XXL`
+- **Color:** Black (`#1F2937`)
+- **Price:** `14000`
+- **Stock:** `6`
+- **Discount:** `10`
+
+### 5. Variant 3
+- Click **Add Variant**
+- **Size:** `3XL`
+- **Color:** White (`#FFFFFF`)
+- **Price:** `15000`
+- **Stock:** `5`
+- **Discount:** `10`
+
+### 6. Images
+- Upload Navy coat images → Tag with Navy color
+- Upload Black coat images → Tag with Black color
+- Upload White coat images → Tag with White color
+
+### 7. Category
+- Select **Luxury Coat** from the dropdown
+
+### 8. Save
+- Click **Save Product** in the top-right corner
+
+---
+
+## Editing Variants on Existing Products
+
+To edit variants on a product you have already created:
+
+1. Go to **Products → Products** in the sidebar
+2. Click on the product you want to edit
+3. The product edit page opens with all existing data pre-filled
+4. Scroll down to the **Pricing And Stock** section to see your current variants
+5. You can:
+   - **Edit** any variant's size, color, price, stock, or discount by changing the values in the fields
+   - **Remove** a variant by clicking its red delete button
+   - **Add** a new variant by clicking **Add Variant**
+6. Click **Save Product** to save your changes
+
+> **Important:** If you remove a variant that customers have already ordered, the existing orders are not affected. But the variant will no longer be available for new purchases.
+
+---
+
+## Tips for Managing Variants
+
+> **Tip:** Start with your most popular sizes and colors first. You can always add more variants later as demand becomes clear.
+
+> **Tip:** Keep prices consistent across sizes when possible. Customers may feel frustrated if the same product costs significantly more just because they need a larger size. If you must charge more for larger sizes, keep the difference small and reasonable.
+
+> **Tip:** Monitor stock levels regularly through the **Stock** page (sidebar → Products → Stock). When any variant's stock runs low, you will see a "Low Stock" warning badge. Restock promptly to avoid losing sales.
+
+> **Tip:** Use accurate hex color codes. If you are unsure of the exact hex code for your product's color, search online for "color picker" tools. Many free tools let you upload a product photo and pick the exact color from the image.
+
+> **Tip:** When adding a new color variant to an existing product, remember to upload and tag new images for that color. A color option without matching images creates a poor customer experience.
+
+---
+
+## Common Mistakes with Variants
+
+| Mistake | Problem | Solution |
+|---|---|---|
+| Forgetting to set stock for a variant | Shows as "Out of Stock" even though you have inventory | Always set the stock count for every variant |
+| Using the wrong hex color code | The color dot on the product page does not match the actual product color | Use a color picker to get the exact hex code from your product photo |
+| Not tagging images with colors | All images show for every color selection — confusing for customers | Tag each image with its corresponding color variant |
+| Adding too many variants at once | Can become difficult to manage stock and pricing | Start with core sizes and colors, expand gradually |
+| Inconsistent size labels | "XL" on one product, "Extra Large" on another | Use standardized size labels across your entire store |
+| Setting discount to 0 when you meant 10 | Product sells at full price instead of sale price | Double-check each variant's discount before saving |
+
+---
+
+## Variant Stock Management
+
+Each variant maintains its own stock count independently. Here's how stock works with variants:
+
+1. **When a customer purchases a variant**, that variant's stock decreases by the quantity ordered
+2. **When stock reaches 0** for a variant, that specific size-color combination shows as "Out of Stock"
+3. **Other variants remain available** — only the out-of-stock variant is affected
+4. **You can restock any variant** from the Stock management page (sidebar → Products → Stock)
+
+For example, if the "XXL Black" variant runs out of stock, customers can still purchase "3XL Navy" or "3XL White". Only the "XXL Black" option will be grayed out or marked as unavailable on the product page.
+
+---
+
+Now let's learn how to organize your products with **Managing Categories**.

@@ -1,0 +1,213 @@
+# Adding a Product
+
+Adding a product is one of the most important tasks you will perform as an admin. This guide walks you through every single field and option on the **Add Product** page so you can create complete, well-organized product listings that look great to your customers.
+
+---
+
+## Accessing the Add Product Page
+
+1. Click **Products** in the left sidebar to expand the submenu
+2. Click **Add Products**
+3. You will see the Add Product form with sections for General Information, Images, Product Type, Pricing, and Category
+
+<ManualImage src="/docs/add_product.jpeg" alt="Add Product page" caption="The Add Product page showing all fields — Product Name, Description, Images area, Product Type selector, Pricing and Stock fields, and Category selector" />
+
+---
+
+## Step 1: Enter General Information
+
+### Product Name
+
+The **Product Name** field is at the top of the form. This is the name customers will see when browsing your store.
+
+- Type a clear, descriptive name for your product
+- Example: `Long Sleeve Wool Coat`, `Classic Black Suit`, `Slim Fit Formal Shirt`
+- Keep it concise but descriptive — include the key attributes like color, style, or material
+
+> **Tip:** Good product names help customers find your products through search. Include relevant keywords like "wool", "slim fit", "formal", etc.
+
+### Product Description
+
+The **Product Description** field is a large text area below the product name. This is where you describe your product in detail. The description supports **Markdown formatting**, which lets you create structured, easy-to-read content.
+
+We cover description writing in depth in the **Writing Descriptions** section, but here is a quick overview:
+
+- Use `##` for section headers (e.g., `## Design Details`)
+- Use `-` for bullet point lists
+- Use `**bold text**` to emphasize important details
+- You can include hashtags at the top for quick tags (e.g., `#white #small`)
+
+<ManualImage src="/docs/upload_product.jpeg" alt="Product with description filled in" caption="A completed product form showing the product name, a properly formatted markdown description, uploaded image, pricing, and category selection" />
+
+---
+
+## Step 2: Upload Product Images
+
+On the right side of the form, you will see the **Images** section. This is where you upload photos of your product.
+
+### How to Upload Images
+
+There are **two ways** to upload images:
+
+1. **Click to Upload** — Click anywhere in the image area (it says "Click or Drop here") to open your computer's file browser. Select one or more image files.
+
+2. **Drag and Drop** — Drag image files from your computer directly onto the image area.
+
+### Image Slots
+
+- The **large area at the top** is for the main product image — this is the primary photo customers will see first
+- Below the main image, there are **smaller slots** (marked with `+` icons) for additional product images
+- You can upload up to **5 images** per product
+
+### Removing Images
+
+- Hover over any uploaded image to see a **red delete button** (trash icon) appear in the top-right corner
+- Click it to remove that image
+- You can also click **Remove All** (appears in the top-right when images are uploaded) to clear all images at once
+
+> **Important:** Always upload at least one high-quality image. Products without images get significantly fewer views and sales. Use well-lit photos with a clean background for the best results.
+
+> **Tip:** For the best quality, use images that are at least **800×1000 pixels**. The system will automatically resize them, but starting with a high-resolution image ensures they look crisp on all devices.
+
+---
+
+## Step 3: Choose Product Type
+
+Below the description, you will see the **Product Type** selector with two options:
+
+### Single Variant
+
+This is the **default** option (highlighted in purple). Use this when your product comes in only **one version** — one size, one color, one price.
+
+**When to use Single Variant:**
+- The product has no size or color options
+- You are selling a one-of-a-kind item
+- The product is an accessory like a tie, belt, or cufflinks with no variations
+
+### Multi Variant
+
+Click **Multi Variant** when your product comes in **multiple sizes, colors, or both**. This unlocks the full variant management system where you can define different combinations of size, color, price, stock, and discount for each variant.
+
+**When to use Multi Variant:**
+- A coat available in sizes S, M, L, XL, XXL
+- A suit available in Navy, Black, and White colors
+- A shirt available in multiple size-color combinations, each with its own stock level
+
+We cover Multi Variant setup in detail in the **Product Variants** section.
+
+---
+
+## Step 4: Set Pricing and Stock
+
+### For Single Variant Products
+
+The **Pricing And Stock** section shows three fields:
+
+| Field | What to Enter | Example |
+|---|---|---|
+| **Price** | The selling price of the product in Rs. Enter only the number, no currency symbol needed | `14000` |
+| **Stock** | How many units you have available for sale | `5` |
+| **Discount** | The discount percentage to apply (enter `0` for no discount) | `15` |
+
+**How Discount Works:**
+- If you set the price to **14000** and the discount to **15**, the customer will see:
+  - Original price: ~~Rs 14,000~~ (crossed out)
+  - Sale price: **Rs 12,600** (automatically calculated as 14000 - 15%)
+- Setting discount to `0` means no discount — the product is sold at full price
+
+> **Important:** The **Stock** value determines how many units customers can purchase. When stock reaches **0**, the product will show as "Out of Stock" and customers cannot add it to their cart. Always keep your stock numbers accurate.
+
+### For Multi Variant Products
+
+When you select **Multi Variant**, the Pricing section changes to show variant-level fields. Each variant gets its own Price, Stock, and Discount. See the **Product Variants** section for full details.
+
+---
+
+## Step 5: Select a Category
+
+On the right side, below the images, you will find the **Category** section.
+
+1. Click the **Select a Category** dropdown
+2. Choose from your existing categories (e.g., "Long Sleeve", "Luxury Coat")
+3. The category is assigned to your product immediately
+
+### Adding a New Category Inline
+
+If the category you need does not exist yet, you can create it right from the Add Product page:
+
+1. Click the **Add** button next to the category dropdown
+2. A dialog box will appear with a text field labeled "Enter category"
+3. Type the name of your new category
+4. Click **Add Category**
+5. The new category will be created and automatically selected for your product
+
+<ManualImage src="/docs/create_category.jpeg" alt="Add Category dialog" caption="The Add Category dialog that appears when you click the Add button — simply type the category name and click Add Category" />
+
+> **Tip:** Keep category names clear and consistent. Use names like "Formal Shirts", "Casual Coats", "Winter Collection" rather than vague names like "Category 1" or "Misc".
+
+---
+
+## Step 6: Save the Product
+
+Once you have filled in all the required fields:
+
+1. Review everything — make sure the name, description, images, price, stock, and category are all correct
+2. Click the **Save Product** button in the top-right corner of the page
+3. If everything is valid, you will see a success notification and the product will be created
+4. If there are validation errors (e.g., missing category), the form will highlight the issues in **red text** — fix them and try saving again
+
+<ManualImage src="/docs/upload_product.jpeg" alt="Completed product form ready to save" caption="A fully completed product form — notice the filled product name, formatted description, uploaded image, pricing details, and selected category" />
+
+---
+
+## Complete Example: Adding a Single Variant Product
+
+Here is a real example of adding a product from start to finish:
+
+1. **Product Name:** `Long Sleeve Wool Coat`
+2. **Product Description:**
+   ```
+   #white #small
+
+   ## description : Classic white coat designed for everyday wear and cooler weather. Made with durable materials and a clean silhouette, suitable for casual, office, and semi-formal use.
+
+   ## Category
+   - Type    : Casual / Formal coat
+   - Season  : Autumn, Winter
+   - Gender  : Unisex
+   ```
+3. **Images:** Upload 1-5 photos of the coat from different angles
+4. **Product Type:** Single Variant
+5. **Price:** `14000`
+6. **Stock:** `5`
+7. **Discount:** `15` (this gives customers a 15% discount)
+8. **Category:** Select "Long Sleeve" from the dropdown
+9. Click **Save Product**
+
+---
+
+## Common Mistakes to Avoid
+
+| Mistake | Why It's a Problem | How to Fix |
+|---|---|---|
+| No images uploaded | Products without images look unprofessional and get very few sales | Always upload at least 1 high-quality image |
+| Empty description | Customers need details to make a purchase decision | Write a thorough description with design details, materials, and care instructions |
+| Stock set to 0 | Product shows as "Out of Stock" immediately | Set the correct inventory count |
+| Discount set too high | You might sell at a loss | Double-check the calculated sale price before saving |
+| No category selected | Product won't appear in category-based filters | Always assign a category — create a new one if needed |
+
+---
+
+## What Happens After Saving?
+
+After you save a product:
+
+- It appears in the **Products** list (sidebar → Products → Products)
+- It becomes visible to customers on your store immediately
+- Customers can add it to their cart, wishlist, and purchase it
+- Stock will automatically decrease as customers buy the product
+- You can edit the product at any time by clicking on it in the Products list
+
+---
+
+> **Next:** Learn how to write compelling product descriptions in the **Writing Descriptions** section, or jump to **Product Variants** to learn how to set up products with multiple sizes and colors.

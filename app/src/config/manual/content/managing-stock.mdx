@@ -1,0 +1,241 @@
+# Managing Stock
+
+Stock management is critical to running a successful store. If your stock numbers are wrong, customers might order products that you do not actually have, leading to cancellations, delays, and unhappy customers. The **Stock** page gives you a centralized place to monitor inventory levels across all your products and update stock quantities quickly.
+
+---
+
+## What Is Stock Management?
+
+Stock (also called inventory) refers to the **number of units you have available to sell** for each product or variant. When a customer places an order, the stock count automatically decreases by the quantity they purchased. When stock reaches **zero**, the product (or variant) is marked as **"Out of Stock"** and customers can no longer purchase it.
+
+Proper stock management means:
+- Always knowing how many units you have of each product
+- Restocking before items run out
+- Avoiding overselling (selling more than you actually have)
+
+---
+
+## Accessing the Stock Page
+
+1. Click **Products** in the left sidebar to expand the submenu
+2. Click **Stock**
+3. The Stock management page loads, showing all your products with their current stock levels
+
+<ManualImage src="/docs/stocks_page.jpeg" alt="Stock management page" caption="The Stock page showing a product (Luxury Coat) with a 'Low Stock' warning badge and controls to adjust the current stock level" />
+
+---
+
+## Understanding the Stock Page Layout
+
+The Stock page shows a list of all your products. Each product is displayed as a collapsible row containing:
+
+| Element | What It Shows |
+|---|---|
+| **Product Image** | A small thumbnail of the product's main image on the left |
+| **Product Name** | The name of the product (e.g., "Luxury Coat") |
+| **Stock Status Badge** | A colored badge indicating the stock status — **Low Stock** (orange), **In Stock** (green), or **Out of Stock** (red) |
+| **Expand Arrow** | Click the arrow on the right side to expand the product and see variant-level stock details |
+
+---
+
+## Stock Status Badges
+
+Each product displays a colored badge that gives you an instant visual indicator of its stock health:
+
+| Badge | Color | Meaning |
+|---|---|---|
+| **In Stock** | 🟢 Green | The product has a healthy stock level — no action needed |
+| **Low Stock** | 🟠 Orange | The product's stock is running low — consider restocking soon before it runs out |
+| **Out of Stock** | 🔴 Red | The product has zero stock — customers cannot purchase it. Restock immediately if you want to continue selling |
+
+> **Tip:** Make it a daily habit to check the Stock page and look for any **Low Stock** or **Out of Stock** badges. Addressing low stock promptly prevents lost sales.
+
+---
+
+## Viewing Stock for a Product
+
+1. Find the product in the list (use the **Search** bar in the top-right corner to search by product name)
+2. Click on the product row or the **expand arrow** on the right side
+3. The row expands to show stock details
+
+### For Single Variant Products
+
+When you expand a single variant product, you will see:
+- **Current Stock** — The current number of units available
+- **Adjustment controls** — Buttons and input to update the stock
+
+### For Multi-Variant Products
+
+When you expand a multi-variant product, you will see **each variant listed separately** with its own stock level. For example:
+
+- **Current Stock of XXL cm** — Shows the stock for the XXL size variant
+- **Current Stock of 3XL Navy** — Shows the stock for the 3XL Navy variant
+
+Each variant has its own independent stock count and adjustment controls.
+
+---
+
+## Updating Stock Quantities
+
+To update the stock for a product or variant:
+
+1. **Expand** the product by clicking on it
+2. You will see the current stock displayed in a **number field** between two buttons
+3. You have three ways to adjust the stock:
+
+### Method 1: Use the Plus/Minus Buttons
+
+- Click the **minus button** (`−`) on the left to decrease the stock by 1
+- Click the **plus button** (`+`) on the right to increase the stock by 1
+- Each click changes the value by exactly 1 unit
+
+### Method 2: Type the Number Directly
+
+- Click on the **number field** in the center
+- Delete the current number and type the new stock quantity
+- This is faster when you need to make large adjustments (e.g., changing stock from 4 to 50)
+
+### Method 3: Combine Both
+
+- Use the buttons for small adjustments
+- Type directly for large changes
+
+After adjusting the number:
+
+4. Click the **Save** button (black button next to the controls)
+5. The stock is updated immediately
+
+<ManualImage src="/docs/stocks_page.jpeg" alt="Stock adjustment controls" caption="The stock adjustment interface — use the minus button, the number field, or the plus button to set the desired stock level, then click Save" />
+
+> **Important:** Always click **Save** after making changes. If you adjust the number but do not click Save, your changes will be lost when you navigate away from the page.
+
+---
+
+## Searching for Products
+
+If you have many products, use the **Search bar** in the top-right corner of the Stock page to quickly find a specific product:
+
+1. Click the **Search** field (it shows a magnifying glass icon and placeholder text "Search...")
+2. Type the product name or part of it
+3. The product list filters in real-time to show only matching products
+
+You can also click the **filter icon** (next to the search bar) for additional filtering options.
+
+> **Tip:** Searching is case-insensitive. Typing "coat" will find "Luxury Coat", "Winter Coat", "COAT", etc.
+
+---
+
+## Understanding How Stock Changes Automatically
+
+Stock numbers change automatically in several situations:
+
+| Event | What Happens to Stock |
+|---|---|
+| **Customer places an order** | Stock decreases by the quantity ordered |
+| **Order is cancelled and deleted** | Stock is restored (increased back by the quantity that was ordered) |
+| **You manually update stock** | Stock changes to whatever value you set |
+
+### Automatic Decrease on Purchase
+
+When a customer buys 2 units of a product (or variant), the stock automatically decreases by 2. You do not need to manually adjust it after each sale.
+
+### Stock Restoration on Cancelled Orders
+
+When an admin deletes a **cancelled** order from the Sales page, the system automatically **restores** the stock for all products in that order. For example:
+
+- Customer orders 2 units of "Luxury Coat (XXL Black)"
+- Stock goes from 6 → 4
+- Order is cancelled and admin deletes it
+- Stock is restored from 4 → 6
+
+This ensures your inventory stays accurate even when orders are cancelled.
+
+---
+
+## Stock Management Best Practices
+
+### Set Accurate Initial Stock
+
+When you first add a product, make sure the stock number matches your **actual physical inventory**. Count your items before entering the number. An incorrect starting stock leads to problems later.
+
+### Regular Stock Audits
+
+At least once a month, compare your **digital stock numbers** (shown on the Stock page) with your **actual physical inventory**. If there are discrepancies, update the digital numbers to match reality.
+
+> **Tip:** Schedule a specific day each month for stock audits. For example, the first Monday of every month. Consistency prevents stock drift from going unnoticed.
+
+### Restock Before Running Out
+
+Do not wait until stock reaches 0 to reorder. When you see the **Low Stock** badge, start the reordering process immediately. The time it takes to receive new inventory could mean days or weeks of lost sales.
+
+### Keep Safety Stock
+
+Consider maintaining a small **safety stock** (buffer) for your best-selling items. For example, if you typically sell 10 units per month, keep at least 5 extra units as buffer to handle unexpected demand spikes.
+
+### Monitor Seasonal Demand
+
+Certain products sell more during specific seasons:
+- **Coats and jackets** — Higher demand in autumn and winter
+- **Light shirts** — Higher demand in spring and summer
+- **Formal suits** — Spikes around wedding season and festival periods
+
+Adjust your stock levels based on upcoming seasonal demand to avoid running out during peak periods.
+
+---
+
+## Multi-Variant Stock Tips
+
+When managing stock for multi-variant products, keep these points in mind:
+
+> **Tip:** Popular sizes (M, L, XL) typically sell faster than extreme sizes (XS, 3XL). Stock more units of your popular sizes.
+
+> **Tip:** If one color variant is outselling others, consider increasing its stock and reducing stock for slower-moving colors.
+
+> **Tip:** When a specific variant runs out of stock, it does NOT affect other variants of the same product. Customers can still purchase available variants. Only the sold-out variant is marked as unavailable.
+
+> **Tip:** Check which variants have the highest turnover rate (sales per week) and prioritize restocking those first.
+
+---
+
+## Common Stock Mistakes
+
+| Mistake | Problem | Solution |
+|---|---|---|
+| Setting initial stock to 0 | Product immediately shows as "Out of Stock" | Set accurate stock when creating the product |
+| Not clicking Save after adjusting | Changes are lost when you leave the page | Always click the Save button after making changes |
+| Ignoring Low Stock warnings | Product runs out and customers cannot buy it | Check Low Stock badges daily and restock promptly |
+| Not doing physical audits | Digital stock drifts from actual inventory | Compare digital and physical stock monthly |
+| Overstocking slow-moving items | Capital tied up in unsold inventory | Order conservatively for new products and increase based on demand |
+
+---
+
+## Troubleshooting
+
+### Stock Shows Wrong Number
+
+If the stock number does not match your actual inventory:
+1. Navigate to the Stock page
+2. Find the product and expand it
+3. Type the **correct** number in the stock field
+4. Click **Save**
+5. Consider doing a full inventory audit to check other products
+
+### Product Shows "Out of Stock" But You Have Inventory
+
+This means the digital stock is 0 even though you physically have units:
+1. Go to the Stock page
+2. Find the product (look for the **Out of Stock** red badge)
+3. Expand it and update the stock to the correct number
+4. Click **Save**
+5. The product will immediately become available for purchase again
+
+### Stock Did Not Decrease After a Sale
+
+This is rare but can happen if there is a system issue:
+1. Check the Sales page to confirm the order was actually placed
+2. Manually decrease the stock by the ordered quantity
+3. If this happens repeatedly, contact your developer to investigate
+
+---
+
+Now let's learn about creating promotional discounts in the **Discounts & Coupons** section.
