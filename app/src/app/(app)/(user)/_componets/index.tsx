@@ -127,7 +127,7 @@ const LandingPage = ({ userCookie }: { userCookie: boolean }) => {
           )}
         >
           <LogoAnimation className="h-[85px] font-normal flex">
-            Alphasuits
+            NepaNova
             <AnimatedNumber
               className="w-36 flex justify-end"
               springOptions={{ bounce: 0, duration: 1000 }}

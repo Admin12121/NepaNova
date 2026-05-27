@@ -14,21 +14,21 @@ import { Search } from "lucide-react";
 import Component from "./command";
 
 const FALLBACK_PLACEHOLDERS = [
-  "Premium suits collection",
-  "Tailored coats & blazers",
-  "Formal pants",
-  "Wedding suits",
-  "Three-piece suits",
-  "Safari suits",
-  "Slim fit shirts",
-  "Custom tailored suits",
-  "Men's formal wear",
-  "Wool blend coats",
-  "Business suits",
-  "Nehru jackets",
-  "Tuxedo suits",
-  "Casual blazers",
-  "Dress shirts",
+  "Himalayan artisanal tea",
+  "Ethically sourced tea",
+  "Nepali craft products",
+  "Premium Himalayan blends",
+  "Gift-ready tea collections",
+  "Handcrafted Nepali goods",
+  "Organic green tea",
+  "Black tea from Nepal",
+  "Loose leaf tea",
+  "Impact-driven products",
+  "Fair trade Himalayan goods",
+  "Crafted in Nepal",
+  "Tea and wellness gifts",
+  "Mountain grown tea",
+  "NepaNova favorites",
 ];
 
 export function PlaceholdersAndVanishInput() {

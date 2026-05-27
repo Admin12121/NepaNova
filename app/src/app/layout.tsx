@@ -43,9 +43,9 @@ const geistSansBold = localFont({
 });
 
 export const metadata: Metadata = constructMetadata({
-  title: "Alphasuits",
+  title: "NepaNova",
   description:
-    "Premium suits, coats, and pants.",
+    "Purpose-driven Himalayan products funding grassroots innovation in Nepal.",
   image: absoluteUrl("/og"),
 });
 

@@ -42,7 +42,7 @@ const supportOptions: SupportOption[] = [
   {
     title: "General contact",
     description: "Speak to one of our agents.",
-    link: "mailto:info@alphasuits.com.np",
+    link: "mailto:info@nepanova.com",
     buttonLabel: "Send email",
     buttonVariant: "outline",
     buttonClass: "border-gray-300 text-gray-700 hover:bg-gray-50",

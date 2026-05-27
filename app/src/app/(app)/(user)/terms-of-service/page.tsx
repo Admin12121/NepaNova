@@ -23,10 +23,10 @@ const items = [
         <section className="space-y-6 ">
           <span>
             <p>
-              This website is operated by Alphasuits, a private limited
+              This website is operated by NepaNova Impact, a private limited
               liability company incorporated in Sundhara, Kathmandu, Nepal.
               Throughout the site, the terms “we”, “us” and “our” refer to
-              Alphasuits. Alphasuits offers this website, including all
+              NepaNova Impact. NepaNova Impact offers this website, including all
               information, tools, and services available from this site to you,
               the user, conditioned upon your acceptance of all terms,
               conditions, policies, and notices stated here.
@@ -39,14 +39,14 @@ const items = [
   {
     id: "2",
     title:
-      "Terms & Conditions regarding use of the online store alphasuits.com.np",
+      "Terms & Conditions regarding use of the online store nepanova.com",
     content: (
       <div className="flex flex-col pb-3 pt-3 text-base dark:text-muted-foreground">
         <section className="space-y-6">
           <p>
             These Terms & Conditions regulate the use of the online store
-            alphasuits.com.np, including the purchase of any available products.
-            Through this Site, Alphasuits sells exclusively to consumers. If we
+            nepanova.com, including the purchase of any available products.
+            Through this Site, NepaNova Impact sells exclusively to consumers. If we
             conclude that a certain order is not placed by a consumer or, in
             general, if an order is deemed to be fraudulent or presumed as such,
             we will consider it null and void. By visiting our Site, completing
@@ -54,17 +54,17 @@ const items = [
             comply with these Terms & Conditions, which constitute an agreement
             between the person accepting these Terms & Conditions (hereinafter
             &ldquo;Customer&rdquo;, &ldquo;you&rdquo; or &ldquo;your&rdquo;) and
-            Alphasuits. The acceptance of these Terms and Conditions entails
+            NepaNova Impact. The acceptance of these Terms and Conditions entails
             that the purchase of any products on our Site is not directly
             related to any professional activity and is limited to strictly
             personal use. The Customer, before placing an order, declares to
             have legal capacity that allows him to fully comply with the
             commitments arising from the conclusion of the agreement, namely
-            payment. Alphasuits shall not be held liable for any purchases
+            payment. NepaNova Impact shall not be held liable for any purchases
             placed by a person without full legal capacity. If an order is
             placed by a person without legal capacity, the legal representatives
             shall be responsible for such order and all related obligations.
-            Alphasuits may, at its own discretion and convenience, at any time
+            NepaNova Impact may, at its own discretion and convenience, at any time
             and without prior notice, suspend the Site, in particular to ensure
             its repair and maintenance, or close it completely.
           </p>
@@ -72,7 +72,7 @@ const items = [
             If your data is being processed based on your consent, you may
             withdraw your consent at any time. The withdrawal of consent will
             not affect the lawfulness of processing based on consent that
-            Alphasuits carried out before the withdrawal.
+            NepaNova Impact carried out before the withdrawal.
           </p>
         </section>
       </div>
@@ -86,7 +86,7 @@ const items = [
         <p>
           All copyright, trademarks and other intellectual or industrial
           property rights inherent to the products, texts, images and other
-          content in general, shared on our Site, are owned by Alphasuits or are
+          content in general, shared on our Site, are owned by NepaNova Impact or are
           being used by us with the permission of the respective owner. Access,
           viewing or downloading of Site content must respect the intellectual
           property rights that protect such content. In particular, it is
@@ -108,13 +108,13 @@ const items = [
       <div className="flex flex-col pb-3 pt-3 text-base dark:text-muted-foreground">
         <p>
           Our Site may display links to other websites or applications that are
-          not under the control of Alphasuits and for which Alphasuits is not
-          responsible. Alphasuits does not have control over and assumes no
+          not under the control of NepaNova Impact and for which NepaNova Impact is not
+          responsible. NepaNova Impact does not have control over and assumes no
           responsibility for the content, privacy policies or practices of any
-          third party websites or services. In particular, Alphasuits does not
+          third party websites or services. In particular, NepaNova Impact does not
           guarantee the reliability of the contents of these links nor is it
           responsible for changes to them. You further acknowledge and agree
-          that Alphasuits shall not be responsible or liable, directly or
+          that NepaNova Impact shall not be responsible or liable, directly or
           indirectly, for any damage or loss alleged to be caused by or in
           connection with the use of any content, goods or services available on
           or through any such websites, apps or services.
@@ -159,7 +159,7 @@ const items = [
           of the product or products they wish to purchase.
         </p>
         <p>
-          Alphasuits does not assure that the product package information is
+          NepaNova Impact does not assure that the product package information is
           translated in every language. However, this information will be
           available at least in English.
         </p>
@@ -170,14 +170,14 @@ const items = [
           they are displayed and up to the stock limits.
         </p>
         <p>
-          Alphasuits may change the variety of products offered for sale on the
+          NepaNova Impact may change the variety of products offered for sale on the
           Site at any time, in accordance with specific limitations related to
           its suppliers, without prejudice to the orders already placed by the
           Customer.
         </p>
         <p>
           If the product ordered by the Customer is no longer available,
-          Alphasuits will immediately inform the Customer and refund the price
+          NepaNova Impact will immediately inform the Customer and refund the price
           of the product to the payment method used by the Customer during the
           purchase, within 10 days of becoming aware of the unavailability of
           the product.
@@ -200,13 +200,13 @@ const items = [
           order.
         </p>
         <p>
-          Alphasuits will send an email confirmation to the address indicated by
-          the Customer, including a copy of these Terms & Conditions. Alphasuits
+          NepaNova Impact will send an email confirmation to the address indicated by
+          the Customer, including a copy of these Terms & Conditions. NepaNova Impact
           is not responsible for unreceived confirmation emails if there are
           errors in the email provided by the Customer.
         </p>
         <p>
-          Alphasuits reserves the right to suspend or cancel any order and/or
+          NepaNova Impact reserves the right to suspend or cancel any order and/or
           delivery, regardless of its nature and level of execution, in case of
           lack of or partial payment of any amount owed by the Customer, in case
           of payment incidents, or in the event of fraud or attempted fraud
@@ -231,14 +231,14 @@ const items = [
         <p>
           All bank card payments are subject to validation and authorization
           checks by the card issuer. If the bank card issuer denies, or for any
-          reason does not authorize the payment, Alphasuits will not be
+          reason does not authorize the payment, NepaNova Impact will not be
           responsible for any delay or non-delivery of any orders.
         </p>
 
         <h2>4. Shipping and Delivery</h2>
         <p>
           rates, from which the Customer may choose. The availability of
-          shipping methods may be changed at any time by Alphasuits.
+          shipping methods may be changed at any time by NepaNova Impact.
         </p>
         <Table>
           <TableHeader>
@@ -282,19 +282,19 @@ const items = [
           Customer or the person authorized to receive the order detects any
           damage or anomaly in the package or in the product, or the absence of
           any product ordered, they must refuse the delivery and promptly
-          contact Alphasuits’s Customer Service (contact details below).
+          contact NepaNova Impact’s Customer Service (contact details below).
         </p>
         <p>
           If the damage or anomaly is detected only after the conclusion of the
           delivery, the Customer or the person authorized to receive the order
-          must promptly contact Alphasuits’s Customer Service.
+          must promptly contact NepaNova Impact’s Customer Service.
         </p>
         <p>
           Any damage or anomaly must be reported to Customer Service within 5
           working days after receipt. Customer Service will conduct a thorough
           analysis of the issue reported. In the event that Customer Service
-          concludes that the damage or anomaly was Alphasuits’s or the carrier’s
-          fault, Alphasuits will replace the defective/damaged items by sending
+          concludes that the damage or anomaly was NepaNova Impact’s or the carrier’s
+          fault, NepaNova Impact will replace the defective/damaged items by sending
           a new shipment OR refund the amount spent on the items with anomalies,
           according to the Customer’s best interests.
         </p>
@@ -308,9 +308,9 @@ const items = [
           delivery.
         </p>
         <p>
-          Notwithstanding the foregoing, Alphasuits will ship the order at most
+          Notwithstanding the foregoing, NepaNova Impact will ship the order at most
           30 days after the conclusion of the agreement in accordance with
-          paragraph 9.2. If Alphasuits is unable to deliver the order within
+          paragraph 9.2. If NepaNova Impact is unable to deliver the order within
           this timeframe due to the unavailability of the products, we will
           inform the Customer and fully reimburse them within 30 days of such
           unavailability.
@@ -331,11 +331,11 @@ const items = [
         <p>
           The system that allows Customers to publish reviews permits them to
           leave reviews, advice, tips, suggestions, information, and
-          recommendations regarding products sold by Alphasuits and assign them
+          recommendations regarding products sold by NepaNova Impact and assign them
           a rating that can vary between one and five stars.
         </p>
         <p>
-          Alphasuits will eliminate any review that we conclude was published in
+          NepaNova Impact will eliminate any review that we conclude was published in
           breach of these Terms & Conditions.
         </p>
         <p>
@@ -399,7 +399,7 @@ const items = [
           </li>
           <li>
             Comments that encourage the purchase of products from a competitor
-            of Alphasuits.
+            of NepaNova Impact.
           </li>
         </ul>
         <p>
@@ -407,11 +407,11 @@ const items = [
           respective reviews.
         </p>
         <p>
-          Upon completion of the review, Alphasuits will send a communication to
+          Upon completion of the review, NepaNova Impact will send a communication to
           the email provided to verify if the person wrote the review.
         </p>
         <p>
-          Alphasuits reserves the right not to publish or to eliminate any
+          NepaNova Impact reserves the right not to publish or to eliminate any
           review that contends with these Terms & Conditions. In this situation,
           the Customer will be notified by email.
         </p>
@@ -425,13 +425,13 @@ const items = [
       <div className="flex flex-col pb-3 gap-2 pt-3 text-base dark:text-muted-foreground">
         <p>
           For any additional information or if you need assistance, you may
-          reach Alphasuits through the following contacts: ·
+          reach NepaNova Impact through the following contacts: ·
         </p>
         <a
-          href="mailto:info@alphasuits.com.np"
+          href="mailto:info@nepanova.com"
           className="cursor-pointer dark:text-white text-black"
         >
-          info@alphasuits.com.np
+          info@nepanova.com
         </a>
       </div>
     ),
@@ -442,14 +442,14 @@ const items = [
     content: (
       <div className="flex flex-col pb-3 gap-2 pt-3 text-base dark:text-muted-foreground">
         <p>
-          Alphasuits is not liable for failure to comply with the obligations
+          NepaNova Impact is not liable for failure to comply with the obligations
           set forth herein if the failure to comply is due to any act of any
           third party, even if foreseeable, results from any fault of the
           Customer, or from a force majeure event, or any other event that is
-          not reasonably within the control of Alphasuits.
+          not reasonably within the control of NepaNova Impact.
         </p>
         <p>
-          Alphasuits assumes no responsibility for any failure or non-conformity
+          NepaNova Impact assumes no responsibility for any failure or non-conformity
           of its services caused by circumstances beyond its control. These
           circumstances may include, but are not limited to, failures in the
           functioning of the Site resulting from the law, acts of the State or
@@ -465,7 +465,7 @@ const items = [
           the Customer intends to make.
         </p>
         <p>
-          Alphasuits rejects any responsibility for any direct, indirect and/or
+          NepaNova Impact rejects any responsibility for any direct, indirect and/or
           accidental damages resulting from the Customer&apos;s use or inability
           to use the content and services contained on our Site.
         </p>
@@ -488,13 +488,13 @@ const items = [
       <div className="flex flex-col pb-3 gap-2 pt-3 text-base dark:text-muted-foreground">
         <p>
           These Terms and Conditions may be updated at any time. Therefore,
-          Alphasuits recommends that you visit this document regularly. Visiting
+          NepaNova Impact recommends that you visit this document regularly. Visiting
           our Site or completing a purchase are subject to the Terms and
           Conditions in force in that moment.
         </p>
         <p>
-          Alphasuits will publish it on this page. Furthermore, if the changes
-          can impact the relationship between Alphasuits and its Customers, we
+          NepaNova Impact will publish it on this page. Furthermore, if the changes
+          can impact the relationship between NepaNova Impact and its Customers, we
           will publish a more detailed notice and/or notify you by email, if you
           have registered in our Site.
         </p>
@@ -509,12 +509,12 @@ const Termsofservice = () => {
       <h1 className="text-3xl">Terms of service</h1>
       <span className="text-start">
         <p className="text-lg max-w-[50rem] text-neutral-950 dark:text-neutral-300">
-          Terms &amp; Conditions Alphasuits{" "}
+          Terms &amp; Conditions NepaNova Impact{" "}
         </p>
         <p className="text-lg max-w-[50rem] text-neutral-700 dark:text-neutral-300">
           Please read these Terms &amp; Conditions (&quot;Terms &amp;
           Conditions&quot; or &quot;T&amp;C&quot;) carefully before using our
-          online store available at alphasuits.com.np (the &quot;Site&quot;). If
+          online store available at nepanova.com (the &quot;Site&quot;). If
           you do not agree with these Terms &amp; Conditions, please do not
           complete a purchase or engage in any other activity in our Site. By
           visiting our Site or completing a purchase, you agree to be bound by

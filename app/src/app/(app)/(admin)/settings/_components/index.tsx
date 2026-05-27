@@ -464,7 +464,7 @@ export default function SettingsDashboard() {
           <div className="flex h-[80vh] items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <LogoAnimation className="h-[85px]">
-                Alphasuits
+                NepaNova
               </LogoAnimation>
             </div>
           </div>

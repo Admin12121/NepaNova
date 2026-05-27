@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "ecom-frontend",
+      "name": "nepanova-frontend",
       "dependencies": {
         "@hookform/error-message": "^2.0.1",
         "@hookform/resolvers": "^3.9.1",

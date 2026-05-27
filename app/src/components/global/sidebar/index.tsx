@@ -804,7 +804,7 @@ const SidebarHeader = ({ logo, children, menuItems }: HeaderProps) => {
                         >
                           <Image
                             src={logo || ""}
-                            alt="Alphasuits Logo"
+                            alt="NepaNova Logo"
                             priority
                             width={100}
                             height={100}

@@ -2,18 +2,18 @@ import { Metadata } from "next";
 import { FooterItem } from "@/types/type";
 
 export const siteConfig = {
-  title: "Alphasuits",
-  name: "Alphasuits",
-  shortName: "Alphasuits",
-  url: "https://alphasuits.com.np",
-  ogImage: "https://alphasuits.com.np/og.jpg",
+  title: "NepaNova",
+  name: "NepaNova Impact",
+  shortName: "NepaNova",
+  url: "https://nepanova.com",
+  ogImage: "https://nepanova.com/og.jpg",
   description:
-    "Nepali clothing brand. Premium suits, coats, and pants. For every type of SHIRTING AND SUITING.",
+    "Purpose-driven Himalayan products funding grassroots innovation and self-reliance in Nepal.",
   links: {
-    instagram: "https://www.instagram.com/alphasuits0/",
-    facebook: "https://www.facebook.com/alphasuits0",
-    tiktok: "https://www.tiktok.com/@alphasuits0",
-    mail: "mailto:info@alphasuits.com.np",
+    instagram: "https://www.instagram.com/nepanova/",
+    facebook: "https://www.facebook.com/nepanova",
+    tiktok: "https://www.tiktok.com/@nepanova",
+    mail: "mailto:info@nepanova.com",
   },
   footerNav: [
     {
@@ -41,17 +41,17 @@ export const siteConfig = {
       items: [
         {
           title: "Instagram",
-          href: "https://www.instagram.com/alphasuits0/",
+          href: "https://www.instagram.com/nepanova/",
           external: true,
         },
         {
           title: "Facebook",
-          href: "https://www.facebook.com/alphasuits0",
+          href: "https://www.facebook.com/nepanova",
           external: true,
         },
         {
           title: "TikTok",
-          href: "https://www.tiktok.com/@alphasuits0",
+          href: "https://www.tiktok.com/@nepanova",
           external: true,
         },
       ],
@@ -84,14 +84,16 @@ export function constructMetadata({
   [key: string]: Metadata[keyof Metadata];
 }): Metadata {
   const baseKeywords = [
-    "Alphasuits",
-    "Nepali clothing brand",
-    "Premium suits",
-    "Coats",
-    "Pants",
-    "Shirting and Suiting",
-    "Tailored suits Nepal",
-    "Menswear",
+    "NepaNova",
+    "NepaNova Impact",
+    "Himalayan products",
+    "Himalayan tea",
+    "Nepali craft",
+    "Ethically sourced products",
+    "National Innovation Centre",
+    "Mahabir Pun",
+    "Social enterprise Nepal",
+    "Impact commerce",
   ];
 
   const baseUrl = process.env.NEXTAUTH_URL || siteConfig.url;
@@ -108,7 +110,7 @@ export function constructMetadata({
           url: image,
           width: 1200,
           height: 630,
-          alt: `${title} - Premium Suits and Clothing`,
+          alt: `${title} - Himalayan Products With Impact`,
         },
       ],
     },
@@ -117,7 +119,7 @@ export function constructMetadata({
       title,
       description,
       images: [image],
-      creator: "@alphasuits0",
+      creator: "@nepanova",
     },
     icons: {
       icon: "/favicon.ico",

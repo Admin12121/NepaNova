@@ -1,6 +1,6 @@
 # Product Variants (Multi-Variant Products)
 
-Product variants allow you to sell a **single product in multiple sizes, colors, and price points** — all from one product listing. Instead of creating separate products for every size and color combination, you define them as variants under one product. This keeps your store organized and gives customers a smooth selection experience.
+Product variants allow you to sell a **single product in multiple pack sizes, package styles, and price points** — all from one product listing. Instead of creating separate products for every pack-size and package-style combination, you define them as variants under one product. This keeps your store organized and gives customers a smooth selection experience.
 
 ---
 
@@ -8,19 +8,19 @@ Product variants allow you to sell a **single product in multiple sizes, colors,
 
 A variant is a specific version of a product defined by a combination of:
 
-- **Size** — e.g., S, M, L, XL, XXL, 3XL
-- **Color** — e.g., Navy, Black, White (with hex color codes)
+- **Size** - e.g., 100g, 250g, 500g, Small, Medium, Gift Set
+- **Color** - e.g., Classic, Gift Box, Refill Pack, or any visual package style
 - **Price** — each variant can have its own price
 - **Stock** — each variant tracks its own inventory separately
 - **Discount** — each variant can have a different discount percentage
 
-For example, a "Luxury Coat" might have these variants:
+For example, a "Himalayan Tea Gift Box" might have these variants:
 
 | Size | Color | Price | Stock | Discount |
 |---|---|---|---|---|
-| 3XL | Navy (#1F3F60) | Rs 15,000 | 5 | 10% |
-| XXL | Black (#1F2937) | Rs 14,000 | 6 | 10% |
-| 3XL | White (#FFFFFF) | Rs 15,000 | 5 | 10% |
+| 100g | Classic (#1F3F60) | Rs 1,200 | 5 | 10% |
+| 250g | Gift Box (#1F2937) | Rs 2,200 | 6 | 10% |
+| 100g | Refill Pack (#FFFFFF) | Rs 1,200 | 5 | 10% |
 
 Each of these is a separate variant with its own inventory and pricing, but they all belong to the same product listing.
 
@@ -30,13 +30,13 @@ Each of these is a separate variant with its own inventory and pricing, but they
 
 | Scenario | Use This |
 |---|---|
-| A basic accessory with no size or color options (e.g., a tie clip) | **Single Variant** |
-| A shirt available in S, M, L sizes but only one color | **Multi Variant** |
-| A coat available in 3 different colors | **Multi Variant** |
-| A suit available in multiple size-and-color combinations | **Multi Variant** |
+| A simple product with no pack-size or package-style options (e.g., one tea pouch) | **Single Variant** |
+| A tea available in 100g, 250g, and 500g packs | **Multi Variant** |
+| A craft product available in 3 different finishes | **Multi Variant** |
+| A gift box available in multiple pack-size and package-style combinations | **Multi Variant** |
 | A one-of-a-kind custom item | **Single Variant** |
 
-**Rule of thumb:** If a customer needs to choose a size or color before purchasing, you need **Multi Variant**.
+**Rule of thumb:** If a customer needs to choose a pack size or package style before purchasing, you need **Multi Variant**.
 
 ---
 
@@ -60,28 +60,28 @@ When you select Multi Variant, the Pricing And Stock section shows fields for yo
 #### Size (optional)
 
 - Enter the size label for this variant
-- Examples: `S`, `M`, `L`, `XL`, `XXL`, `3XL`, `42`, `44`, `Free Size`
+- Examples: `100g`, `250g`, `500g`, `Small`, `Medium`, `Gift Set`
 - This field is **optional** — if your product only varies by color (not size), you can leave it empty
 
-> **Tip:** Use consistent size labels across all your products. If you use "XL" for one product, don't use "Extra Large" for another. Consistency helps customers know what to expect.
+> **Tip:** Use consistent size labels across all your products. If you use "250g" for one tea, do not use "Quarter Kilogram" for another. Consistency helps customers know what to expect.
 
 #### Color (optional)
 
 - Click the **color field** to open the color picker
 - You can either:
   - Pick a color visually from the color picker
-  - Type a specific **hex color code** (e.g., `#1F3F60` for Navy)
-- The color name will be displayed alongside the hex code (e.g., "Navy (#1F3F60)")
+  - Type a specific **hex color code** (e.g., `#1F3F60` for Classic)
+- The color name will be displayed alongside the hex code (e.g., "Classic (#1F3F60)")
 - Click the **X** button to remove the color from this variant
 - This field is **optional** — if your product only varies by size (not color), you can leave it empty
 
-> **Important:** The hex color code is what appears on the customer-facing product page as a color selector dot. Choose accurate hex codes that truly represent the product's color. If the coat is navy, use a navy hex code, not a generic blue.
+> **Important:** The hex color code is what appears on the customer-facing product page as a color selector dot. Choose accurate hex codes that truly represent the product's color. If the package style is green, use an accurate green hex code, not a generic color.
 
 #### Price
 
 - Enter the **selling price** for this specific variant in Rs
-- Example: `15000`
-- Each variant can have a different price (e.g., larger sizes might cost more due to more material)
+- Example: `1200`
+- Each variant can have a different price (e.g., larger packs or gift packaging may cost more)
 
 #### Stock
 
@@ -132,22 +132,22 @@ Here is how the variant section looks when fully filled out:
 ┌─────────────────────────────────────────────────────────┐
 │ Size (optional)          │ Color (optional)             │
 │ ┌─────────────────────┐  │ ┌──────────────────────────┐ │
-│ │ 3XL                 │  │ │ 🟦 Navy (#1F3F60)    ✕  │ │
+│ │ 100g                 │  │ │ 🟦 Classic (#1F3F60)    ✕  │ │
 │ └─────────────────────┘  │ └──────────────────────────┘ │
 │                                                         │
 │ Price        │ Stock     │ Discount    │                 │
 │ ┌──────────┐ │ ┌───────┐ │ ┌─────────┐ │  🗑️            │
-│ │ 15000    │ │ │ 5     │ │ │ 10      │ │                │
+│ │ 1200    │ │ │ 5     │ │ │ 10      │ │                │
 │ └──────────┘ │ └───────┘ │ └─────────┘ │                │
 ├─────────────────────────────────────────────────────────┤
 │ Size (optional)          │ Color (optional)             │
 │ ┌─────────────────────┐  │ ┌──────────────────────────┐ │
-│ │ XXL                 │  │ │ ⬛ Black (#1F2937)   ✕   │ │
+│ │ 250g                 │  │ │ ⬛ Gift Box (#1F2937)   ✕   │ │
 │ └─────────────────────┘  │ └──────────────────────────┘ │
 │                                                         │
 │ Price        │ Stock     │ Discount    │                 │
 │ ┌──────────┐ │ ┌───────┐ │ ┌─────────┐ │  🗑️            │
-│ │ 14000    │ │ │ 6     │ │ │ 10      │ │                │
+│ │ 2200    │ │ │ 6     │ │ │ 10      │ │                │
 │ └──────────┘ │ └───────┘ │ └─────────┘ │                │
 ├─────────────────────────────────────────────────────────┤
 │                    [ Add Variant ]                       │
@@ -166,7 +166,7 @@ One of the most important features of multi-variant products is **tagging images
 
 1. Upload your product images in the **Images** section (right side of the page)
 2. After uploading, you will see **small colored circles** appear on each image thumbnail
-3. These circles represent the colors you defined in your variants (e.g., Navy, Black, White)
+3. These circles represent the colors you defined in your variants (e.g., Classic, Gift Box, Refill Pack)
 4. Click on a color circle to **tag** that image with that color
 5. The tagged color will be highlighted/selected on the image
 
@@ -174,13 +174,13 @@ One of the most important features of multi-variant products is **tagging images
 
 Looking at the screenshot:
 
-<ManualImage src="/docs/multi_varient_product.jpeg" alt="Color-tagged images" caption="Images tagged with color variants — the first image shows Navy (blue circles), while other thumbnails show Black and White color tags" />
+<ManualImage src="/docs/multi_varient_product.jpeg" alt="Color-tagged images" caption="Images tagged with color variants — the first image shows Classic (blue circles), while other thumbnails show Gift Box and Refill Pack color tags" />
 
 In this example:
-- The main product image is tagged with **Navy** (shown by the blue color circles)
-- The smaller thumbnails below show different images tagged with **Black** and **White**
-- When a customer selects "Navy" on the product page, they will only see the Navy-tagged images
-- When they switch to "Black", the gallery updates to show only the Black-tagged images
+- The main product image is tagged with **Classic** (shown by the blue color circles)
+- The smaller thumbnails below show different images tagged with **Gift Box** and **Refill Pack**
+- When a customer selects "Classic" on the product page, they will only see the Classic-tagged images
+- When they switch to "Gift Box", the gallery updates to show only the Gift Box-tagged images
 
 > **Tip:** For the best customer experience, upload at least 2 images per color variant — one front view and one lifestyle/angle shot. This way, every color selection has meaningful images to show.
 
@@ -204,56 +204,56 @@ This creates a seamless shopping experience where everything on the page reflect
 
 ## Complete Example: Creating a Multi-Variant Product
 
-Let's walk through creating a "Luxury Coat" available in three size-color combinations:
+Let's walk through creating a "Himalayan Tea Gift Box" available in three pack-size and style combinations:
 
 ### 1. General Information
-- **Product Name:** `Luxury Coat`
+- **Product Name:** `Himalayan Tea Gift Box`
 - **Description:**
   ```
   ## Design Details
-  - Collar    : Classic lapel
-  - Closure   : Button front
-  - Pockets   : Two side pockets
-  - Style     : Minimal, modern luxury
+  - Origin    : High-altitude estate
+  - Flavor    : Smooth and aromatic
+  - Impact    : Supports Nepali innovation
+  - Style     : Premium, ethical, gift-ready
 
   ## Care Instructions
-  - Cleaning  : Dry clean only
-  - Storage   : Hang on padded hanger
+  - Storage   : Keep sealed in a cool, dry place
+  - Avoid     : Direct sunlight and moisture
   ```
 
 ### 2. Product Type
 - Select **Multi Variant**
 
 ### 3. Variant 1
-- **Size:** `3XL`
-- **Color:** Navy (`#1F3F60`)
-- **Price:** `15000`
+- **Size:** `100g`
+- **Color:** Classic (`#1F3F60`)
+- **Price:** `1200`
 - **Stock:** `5`
 - **Discount:** `10`
 
 ### 4. Variant 2
 - Click **Add Variant**
-- **Size:** `XXL`
-- **Color:** Black (`#1F2937`)
-- **Price:** `14000`
+- **Size:** `250g`
+- **Color:** Gift Box (`#1F2937`)
+- **Price:** `2200`
 - **Stock:** `6`
 - **Discount:** `10`
 
 ### 5. Variant 3
 - Click **Add Variant**
-- **Size:** `3XL`
-- **Color:** White (`#FFFFFF`)
-- **Price:** `15000`
+- **Size:** `100g`
+- **Color:** Refill Pack (`#FFFFFF`)
+- **Price:** `1200`
 - **Stock:** `5`
 - **Discount:** `10`
 
 ### 6. Images
-- Upload Navy coat images → Tag with Navy color
-- Upload Black coat images → Tag with Black color
-- Upload White coat images → Tag with White color
+- Upload Classic pack images → Tag with Classic color
+- Upload Gift Box images → Tag with Gift Box color
+- Upload Refill Pack images → Tag with Refill Pack color
 
 ### 7. Category
-- Select **Luxury Coat** from the dropdown
+- Select **Himalayan Tea Gift Box** from the dropdown
 
 ### 8. Save
 - Click **Save Product** in the top-right corner
@@ -314,7 +314,7 @@ Each variant maintains its own stock count independently. Here's how stock works
 3. **Other variants remain available** — only the out-of-stock variant is affected
 4. **You can restock any variant** from the Stock management page (sidebar → Products → Stock)
 
-For example, if the "XXL Black" variant runs out of stock, customers can still purchase "3XL Navy" or "3XL White". Only the "XXL Black" option will be grayed out or marked as unavailable on the product page.
+For example, if the "250g Gift Box" variant runs out of stock, customers can still purchase "100g Classic" or "100g Refill Pack". Only the "250g Gift Box" option will be grayed out or marked as unavailable on the product page.
 
 ---
 

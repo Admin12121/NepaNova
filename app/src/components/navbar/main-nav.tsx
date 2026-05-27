@@ -18,7 +18,7 @@ export function MainNav() {
             priority
             width={100}
             height={100}
-            alt="Alphasuits Logo"
+            alt="NepaNova Logo"
           />
         </span>
       </Link>
