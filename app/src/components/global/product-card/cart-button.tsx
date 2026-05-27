@@ -17,6 +17,7 @@ import {
   useGetnotifyuserQuery,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
+import { getVariantAttributeEntries } from "@/lib/variant-attributes";
 
 const EmailSchema = z.object({
   email: z
@@ -131,6 +132,18 @@ const Cartbutton = ({
   const variantId = matchedVariant?.id ?? null;
   const variantStock = matchedVariant?.stock ?? stocks;
   const variantDiscount = matchedVariant ? Number(matchedVariant.discount) : 0;
+  const selectedSizeAttribute = useMemo(() => {
+    if (matchedVariant) {
+      const sizeEntry = getVariantAttributeEntries(matchedVariant).find(
+        (entry) => entry.label === "Size",
+      );
+      if (sizeEntry) {
+        return sizeEntry;
+      }
+    }
+
+    return selectedSize ? { label: "Size", value: selectedSize } : null;
+  }, [matchedVariant, selectedSize]);
 
   return (
     <>
@@ -175,7 +188,7 @@ const Cartbutton = ({
         {Array.isArray(variantsData) ? (
           <>
             <span className="flex gap-3 flex-col">
-              <p className="text-sm">Choose Statue Size</p>
+              <p className="text-sm">Choose Variant Option</p>
               <span className="flex gap-2 items-center flex-wrap">
                 {sizesForColor.map((size) => (
                   <Button
@@ -200,11 +213,19 @@ const Cartbutton = ({
             ) : (
               <Card className="w-full mt-5 rounded-md bg-white dark:bg-neutral-900 border-none shadow-none p-3">
                 <CardBody>
-                  <span className="flex justify-between items-center">
-                    <p className="text-xs text-zinc-400">Statue Size</p>
-                    <p className="text-xs text-zinc-400">{selectedSize} cm</p>
-                  </span>
-                  <Divider className="my-1" />
+                  {selectedSizeAttribute && (
+                    <>
+                      <span className="flex justify-between items-center">
+                        <p className="text-xs text-zinc-400">
+                          {selectedSizeAttribute.label}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          {selectedSizeAttribute.value}
+                        </p>
+                      </span>
+                      <Divider className="my-1" />
+                    </>
+                  )}
                   {/* Color Display */}
                   {selectedColor && (
                     <>

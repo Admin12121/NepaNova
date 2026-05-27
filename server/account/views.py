@@ -225,7 +225,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         try:
             # Send welcome email
-            subject = "Welcome to Alphasuits"
+            subject = "Welcome to NepaNova Impact"
             body = render_to_string(
                 "welcome.html",
                 {"email": user.email, "username": user.username},
@@ -275,7 +275,7 @@ class UserViewSet(viewsets.ModelViewSet):
                             "error": (
                                 "Your account has been suspended due to a violation of our "
                                 "Terms and Conditions. For more details or inquiries, "
-                                "contact us at info@alphasuits.com.np"
+                                "contact us at info@nepanova.com"
                             ),
                             "blocked": True,
                             "terms_url": "/terms-of-service",
@@ -353,7 +353,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     "error": (
                         "Your account has been suspended due to a violation of our "
                         "Terms and Conditions. For more details or inquiries, "
-                        "contact us at info@alphasuits.com.np"
+                        "contact us at info@nepanova.com"
                     ),
                     "blocked": True,
                     "terms_url": "/terms-of-service",

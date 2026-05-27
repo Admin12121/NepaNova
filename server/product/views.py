@@ -887,7 +887,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             from django.conf import settings
 
             frontend_url = getattr(
-                settings, "FRONTEND_URL", "https://alphasuits.com.np"
+                settings, "FRONTEND_URL", "https://nepanova.com"
             ).rstrip("/")
             product_url = (
                 f"{frontend_url}/collections/{product.productslug}"

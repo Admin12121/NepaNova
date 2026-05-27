@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import {
+  useGetlayoutQuery,
   useNotifyuserMutation,
   useGetnotifyuserQuery,
 } from "@/lib/store/Service/api";
@@ -38,6 +39,8 @@ import { parseDescription } from "@/lib/parse-decsription";
 import { renderUI } from "./description-automation";
 import WriteReview from "./write-review";
 import { delay } from "@/lib/utils";
+import { addDays, getStoreSettings } from "@/lib/store-settings";
+import { getVariantAttributeEntries } from "@/lib/variant-attributes";
 
 const EmailSchema = z.object({
   email: z.string().min(1, { message: "UID is required" }),
@@ -49,6 +52,7 @@ interface VariantObject {
   color_code?: string | null;
   color_name?: string | null;
   size: string | null;
+  attributes?: Record<string, string | number | boolean | null>;
   price: string;
   discount: string;
   stock: number;
@@ -112,6 +116,11 @@ const Sidebar = ({
   const router = useRouter();
   const { status } = useAuthUser();
   const { updateProductList } = useCart();
+  const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const storeSettings = useMemo(
+    () => getStoreSettings(layoutData?.config),
+    [layoutData],
+  );
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   // Use internal state only if parent doesn't control color
@@ -287,6 +296,18 @@ const Sidebar = ({
     : !Array.isArray(variantsData) && variantsData
       ? variantsData.stock
       : 0;
+  const selectedSizeAttribute = useMemo(() => {
+    if (matchedVariant) {
+      const sizeEntry = getVariantAttributeEntries(matchedVariant).find(
+        (entry) => entry.label === "Size",
+      );
+      if (sizeEntry) {
+        return sizeEntry;
+      }
+    }
+
+    return selectedSize ? { label: "Size", value: selectedSize } : null;
+  }, [matchedVariant, selectedSize]);
   const finalPrice = useMemo(() => {
     return Number(
       (convertedPrice - convertedPrice * (discount / 100)).toFixed(2),
@@ -316,7 +337,7 @@ const Sidebar = ({
 
   const handleAddToCart = () => {
     if (!currentVariantId) {
-      toast.error("Please select a valid size and color combination", {
+      toast.error("Please select a valid variant combination", {
         position: "top-center",
       });
       return;
@@ -329,7 +350,7 @@ const Sidebar = ({
 
   const handleenc = () => {
     if (!currentVariantId) {
-      toast.error("Please select a valid size and color combination", {
+      toast.error("Please select a valid variant combination", {
         position: "top-center",
       });
       return;
@@ -354,10 +375,7 @@ const Sidebar = ({
     });
   };
   const calculateEstimatedArrival = (): string => {
-    const today = new Date();
-    const deliveryDate = new Date(today);
-    deliveryDate.setDate(today.getDate() + 2);
-    return formatDate(deliveryDate);
+    return formatDate(addDays(new Date(), storeSettings.deliveryEstimateDays));
   };
   const arrivalDate = calculateEstimatedArrival();
   const description = parseDescription(products.description);
@@ -442,7 +460,7 @@ const Sidebar = ({
                 )}
                 {allUniqueSizes.length > 0 && (
                   <span className="flex gap-3 flex-col">
-                    <p className="text-sm">Statue Size</p>
+                    <p className="text-sm">Variant Option</p>
                     <span className="flex gap-2 items-center flex-wrap">
                       {allUniqueSizes.map((size) => {
                         const isActive = selectedSize === size;
@@ -469,11 +487,13 @@ const Sidebar = ({
                   <CardBody>
                     <p className="text-sm text-zinc-400">Details</p>
                     <Divider className="my-1" />
-                    {selectedSize && (
+                    {selectedSizeAttribute && (
                       <span className="flex justify-between items-center">
-                        <p className="text-xs text-zinc-400">Statue Size</p>
                         <p className="text-xs text-zinc-400">
-                          {selectedSize} cm
+                          {selectedSizeAttribute.label}
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                          {selectedSizeAttribute.value}
                         </p>
                       </span>
                     )}

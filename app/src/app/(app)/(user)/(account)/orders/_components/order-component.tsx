@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { renderBadge } from "@/components/global/renderBadge";
+import { addDays, type StoreSettings } from "@/lib/store-settings";
 
 
 export const OrderComponent = ({
@@ -27,11 +28,13 @@ export const OrderComponent = ({
   loadMore,
   hasMore,
   loading,
+  storeSettings,
 }: {
   data: OrderData[];
   loadMore: any;
   hasMore: boolean;
   loading: boolean;
+  storeSettings: StoreSettings;
 }) => {
   // Only show full-page spinner on initial load (when no data exists yet)
   if (loading && data.length === 0) {
@@ -57,7 +60,7 @@ export const OrderComponent = ({
                 value={order.transactionuid}
                 className="rounded-lg shadow-none bg-white dark:bg-neutral-900 transition-all w-full"
               >
-                <OrderDetails order={order} />
+                <OrderDetails order={order} storeSettings={storeSettings} />
               </AccordionItem>
             ))}
             {loading && (
@@ -80,7 +83,13 @@ export const OrderComponent = ({
   );
 };
 
-const OrderDetails = ({ order }: { order: OrderData }) => {
+const OrderDetails = ({
+  order,
+  storeSettings,
+}: {
+  order: OrderData;
+  storeSettings: StoreSettings;
+}) => {
   const router = useRouter();
   const truncateText = useCallback(
     (text: string, maxLength: number): string => {
@@ -101,9 +110,7 @@ const OrderDetails = ({ order }: { order: OrderData }) => {
     created: string,
     daysToAdd: number
   ): string => {
-    const createdDate = new Date(created);
-    createdDate.setDate(createdDate.getDate() + daysToAdd);
-    return formatDate(createdDate);
+    return formatDate(addDays(new Date(created), daysToAdd));
   };
 
   return (
@@ -131,7 +138,8 @@ const OrderDetails = ({ order }: { order: OrderData }) => {
         <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">
           <span className="p-2 border-1 rounded-xl">
             <p className="text-sm flex items-center gap-1">
-              <Truck className="w-4 h-4" /> Kathmandu, Nepal
+              <Truck className="w-4 h-4" /> {storeSettings.originCity},{" "}
+              {storeSettings.originCountry}
             </p>
           </span>
           <span className="flex items-center justify-center">
@@ -139,16 +147,20 @@ const OrderDetails = ({ order }: { order: OrderData }) => {
             <span className="p-2 border-1 rounded-xl">
               <p className="text-sm text-neutral-500">
                 {order.status === "unpaid"
-                  ? "Complete Payment within 24 hrs"
+                  ? `Complete Payment within ${storeSettings.paymentWindowHours} hrs`
                   : order.status === "successful" ||
                     order.status === "delivered"
                     ? "Delivered Successfully"
                     : order.status === "cancelled"
                       ? "Cancelled"
-                      : `Estimated arrival: ${calculateEstimatedArrival(
-                        order?.created,
-                        7
-                      )}`}
+                      : `Estimated arrival: ${
+                          order.expected_delivery_date
+                            ? formatDate(new Date(order.expected_delivery_date))
+                            : calculateEstimatedArrival(
+                                order?.created,
+                                storeSettings.deliveryEstimateDays,
+                              )
+                        }`}
               </p>
             </span>
             <RightIcon className="dark:fill-white/70 dark:stroke-white/70 stroke-neutral-700 hidden lg:flex" />

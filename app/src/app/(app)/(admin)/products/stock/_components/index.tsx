@@ -39,6 +39,7 @@ import { cn, delay } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Kbd from "@/components/ui/kbd";
+import { formatVariantSummary } from "@/lib/variant-attributes";
 
 interface NotifyUser {
   email: string;
@@ -48,6 +49,9 @@ interface NotifyUser {
 interface LowStockVariant {
   id: number;
   size: string | null;
+  color_name?: string | null;
+  color_code?: string | null;
+  attributes?: Record<string, string | number | boolean | null>;
   price: string;
   notify_users: NotifyUser[];
   stock: number;
@@ -293,7 +297,9 @@ const Stocks = () => {
                           <FormItem>
                             <FormLabel>
                               Current Stock{" "}
-                              {variant.size && `of ${variant.size} cm`}
+                              {formatVariantSummary(variant)
+                                ? `of ${formatVariantSummary(variant)}`
+                                : ""}
                             </FormLabel>
                             <div className="flex flex-row gap-2">
                               <Button

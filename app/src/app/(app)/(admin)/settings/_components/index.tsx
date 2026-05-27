@@ -79,6 +79,7 @@ import {
 } from "@/components/ui/select";
 import { HexColorPicker } from "react-colorful"
 import LogoAnimation from "@/components/global/logo_animation";
+import { DEFAULT_STORE_SETTINGS, getStoreSettings } from "@/lib/store-settings";
 
 
 const componentSchema = z.object({
@@ -113,6 +114,21 @@ const messageSchema = z.object({
   date: z.string(),
 });
 
+const storeSettingsSchema = z.object({
+  deliveryEstimateDays: z.coerce
+    .number()
+    .int("Delivery estimate must be a whole number")
+    .min(0, "Delivery estimate cannot be negative")
+    .max(365, "Delivery estimate is too high"),
+  originCity: z.string().min(1, "Origin city is required"),
+  originCountry: z.string().min(1, "Origin country is required"),
+  paymentWindowHours: z.coerce
+    .number()
+    .int("Payment window must be a whole number")
+    .min(1, "Payment window is required")
+    .max(168, "Payment window cannot exceed 168 hours"),
+});
+
 const filterItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
@@ -137,6 +153,7 @@ const settingsSchema = z.object({
   }),
   slider: sliderSchema,
   events: eventSchema,
+  storeSettings: storeSettingsSchema,
   messages: messageSchema,
   filters: filtersSchema,
 });
@@ -174,6 +191,7 @@ export default function SettingsDashboard() {
       },
       slider: [{ image: "", href: "" }],
       events: [{ title: "", description: "", color: "#f87171" }],
+      storeSettings: DEFAULT_STORE_SETTINGS,
       messages: { message: "", date: "" },
       filters: {
         categories: [],
@@ -218,9 +236,11 @@ export default function SettingsDashboard() {
       }
 
       const messages = apiData.messages || { message: "", date: "" };
+      const storeSettings = getStoreSettings(apiData);
 
       const transformedData = {
         ...apiData,
+        storeSettings,
         messages,
         filters: transformedFilters,
       };
@@ -447,6 +467,14 @@ export default function SettingsDashboard() {
           >
             <Filter className="mr-2 h-4 w-4" />
             Filters
+          </Button>
+          <Button
+            variant={activeTab === "storeSettings" ? "default" : "ghost"}
+            className="justify-start"
+            onClick={() => setActiveTab("storeSettings")}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Store
           </Button>
           <Button
             variant={activeTab === "messages" ? "default" : "ghost"}
@@ -1119,6 +1147,128 @@ export default function SettingsDashboard() {
                       </Card>
                     </TabsContent>
                   </Tabs>
+                </div>
+              )}
+              {activeTab === "storeSettings" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-3xl font-bold tracking-tight">
+                        Store Settings
+                      </h2>
+                      <p className="text-muted-foreground mt-1">
+                        Manage delivery timing and order messaging.
+                      </p>
+                    </div>
+                    <Button type="submit" size="lg" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Separator />
+
+                  <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all">
+                    <CardHeader className="bg-muted/50 p-2 rounded-xl">
+                      <CardTitle className="flex items-center">
+                        <div className="bg-primary/10 p-2 rounded-md mr-3">
+                          <Settings className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          Delivery
+                          <CardDescription className="text-xs">
+                            These values control delivery estimates shown to
+                            customers and saved on new orders.
+                          </CardDescription>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 py-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="storeSettings.deliveryEstimateDays"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Delivery Estimate Days</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="number"
+                                min={0}
+                                max={365}
+                                className="!bg-muted"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Number of days added to the order date.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="storeSettings.paymentWindowHours"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Payment Window Hours</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="number"
+                                min={1}
+                                max={168}
+                                className="!bg-muted"
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Used for unpaid order instructions.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="storeSettings.originCity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Origin City</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="!bg-muted" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="storeSettings.originCountry"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Origin Country</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="!bg-muted" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </CardContent>
+                    <CardFooter className="bg-muted/30 border-t flex justify-between p-2">
+                      <div className="text-xs text-muted-foreground">
+                        Applies to new orders immediately after saving.
+                      </div>
+                    </CardFooter>
+                  </Card>
                 </div>
               )}
               {activeTab === "messages" && (

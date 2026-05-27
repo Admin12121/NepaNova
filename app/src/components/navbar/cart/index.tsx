@@ -40,6 +40,7 @@ import { VoucherSkleton } from "@/app/(app)/(user)/checkout/[transitionuid]/_com
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { formatVariantSummary } from "@/lib/variant-attributes";
 
 const schema = z.object({
   code: z.string().min(1, { message: "Code is required" }),
@@ -52,6 +53,9 @@ const FeatureProduct = dynamic(() => import("./feature-products"), {
 interface Variant {
   id: number;
   size: string;
+  color_name?: string | null;
+  color_code?: string | null;
+  attributes?: Record<string, string | number | boolean | null>;
   price: string;
   discount: number;
   stock: number;
@@ -375,6 +379,7 @@ const CartItem = ({
   const { HandleIncreaseItems, HandledecreaseItems, loading } = useCart();
   const convertedPrice = data.variantDetails.price;
   const discount = data.variantDetails.discount;
+  const variantSummary = formatVariantSummary(data.variantDetails);
 
   const finalPrice = Number(
     (convertedPrice - convertedPrice * (discount / 100)).toFixed(2),
@@ -415,9 +420,7 @@ const CartItem = ({
               </p>
               <p className="text-xs text-zinc-400">
                 {data.categoryname}{" "}
-                {data.variantDetails.size
-                  ? ` ( ${data.variantDetails.size}cm )`
-                  : ""}
+                {variantSummary ? ` ( ${variantSummary} )` : ""}
               </p>
             </span>
             <span className="flex items-center gap-5">

@@ -10,6 +10,7 @@ import {
   useSalesRetrieveQuery,
   useProductsByIdsQuery,
   useUpdateSaleMutation,
+  useGetlayoutQuery,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { MapPin, ShoppingCart, Truck } from "lucide-react";
@@ -36,6 +37,11 @@ import { Button } from "@/components/ui/button";
 import { EllipsisIcon } from "lucide-react";
 import { toast } from "sonner";
 import { renderBadge } from "@/components/global/renderBadge";
+import {
+  addDays,
+  getStoreSettings,
+  type StoreSettings,
+} from "@/lib/store-settings";
 
 interface Product {
   id: number;
@@ -88,6 +94,11 @@ export interface Order {
 
 const OrderRetrieve = ({ transactionuid }: { transactionuid: string }) => {
   const { accessToken } = useAuthUser();
+  const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const storeSettings = useMemo(
+    () => getStoreSettings(layoutData?.config),
+    [layoutData],
+  );
   const {
     data: encryptedData,
     isLoading,
@@ -104,6 +115,7 @@ const OrderRetrieve = ({ transactionuid }: { transactionuid: string }) => {
           data={data as unknown as Order}
           token={accessToken}
           refetch={refetch}
+          storeSettings={storeSettings}
         />
       )}
     </PageSkeleton>
@@ -114,10 +126,12 @@ const ProductCard = ({
   data,
   token,
   refetch,
+  storeSettings,
 }: {
   data: Order;
   token: string;
   refetch: any;
+  storeSettings: StoreSettings;
 }) => {
   const [updateSale] = useUpdateSaleMutation();
   const isActionInProgressRef = useRef(false);
@@ -174,9 +188,7 @@ const ProductCard = ({
     created: string,
     daysToAdd: number,
   ): string => {
-    const createdDate = new Date(created);
-    createdDate.setDate(createdDate.getDate() + daysToAdd);
-    return formatDate(createdDate);
+    return formatDate(addDays(new Date(created), daysToAdd));
   };
 
   const handleUpdateSale = async (id: number, status: string) => {
@@ -271,7 +283,8 @@ const ProductCard = ({
         <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">
           <span className="p-2 border-1 rounded-xl">
             <p className="text-sm flex items-center gap-1">
-              <Truck className="w-4 h-4" /> Kathmandu, Nepal
+              <Truck className="w-4 h-4" /> {storeSettings.originCity},{" "}
+              {storeSettings.originCountry}
             </p>
           </span>
           <span className="flex items-center justify-center">
@@ -279,7 +292,7 @@ const ProductCard = ({
             <span className="p-2 border-1 rounded-xl">
               <p className="text-sm text-neutral-500">
                 {data.status === "unpaid"
-                  ? "Complete Payment within 24 hrs"
+                  ? `Complete Payment within ${storeSettings.paymentWindowHours} hrs`
                   : data.status === "successful" || data.status === "delivered"
                     ? "Delivered Successfully"
                     : data.status === "cancelled"
@@ -287,7 +300,10 @@ const ProductCard = ({
                       : `Estimated arrival: ${
                           data.expected_delivery_date
                             ? formatDate(new Date(data.expected_delivery_date))
-                            : calculateEstimatedArrival(data?.created, 2)
+                            : calculateEstimatedArrival(
+                                data?.created,
+                                storeSettings.deliveryEstimateDays,
+                              )
                         }`}
               </p>
             </span>

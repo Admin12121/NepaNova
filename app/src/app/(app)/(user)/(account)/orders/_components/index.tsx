@@ -1,9 +1,10 @@
 "use client";
 import dynamic from "next/dynamic";
-import React, { useState, useEffect, useCallback } from "react";
-import { useGetOrdersQuery } from "@/lib/store/Service/api";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useGetOrdersQuery, useGetlayoutQuery } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getStoreSettings } from "@/lib/store-settings";
 
 const OrderComponent = dynamic(
   () => import("./order-component").then((mod) => mod.OrderComponent),
@@ -43,6 +44,7 @@ export interface Order {
   payment_intent_id: any;
   created: string;
   updated_at: string;
+  expected_delivery_date?: string;
 }
 
 const Orders = () => {
@@ -54,6 +56,11 @@ const Orders = () => {
   const { data, isLoading: loading } = useGetOrdersQuery(
     { token: accessToken, status: status, page: page },
     { skip: !accessToken }
+  );
+  const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const storeSettings = useMemo(
+    () => getStoreSettings(layoutData?.config),
+    [layoutData],
   );
 
   useEffect(() => {
@@ -109,19 +116,19 @@ const Orders = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="w-full h-full">
-          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} storeSettings={storeSettings} />
         </TabsContent>
         <TabsContent value="onshipping" className="w-full h-full">
-          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} storeSettings={storeSettings} />
         </TabsContent>
         <TabsContent value="arrived" className="w-full h-full">
-          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} storeSettings={storeSettings} />
         </TabsContent>
         <TabsContent value="delivered" className="w-full h-full">
-          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} storeSettings={storeSettings} />
         </TabsContent>
         <TabsContent value="canceled" className="w-full h-full">
-          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} />
+          <OrderComponent data={sales} loadMore={loadMore} hasMore={hasMore} loading={loading} storeSettings={storeSettings} />
         </TabsContent>
       </Tabs>
     </section>

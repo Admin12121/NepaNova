@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from account.models import DeliveryAddress
 from account.renderers import UserRenderer
 from account.utils import send_email
+from layout.utils import get_delivery_estimate_days
 from product.models import Product, ProductVariant
 from server.utils.encryption import encrypt_response
 
@@ -185,7 +186,8 @@ class SalesViewSet(viewsets.ModelViewSet):
                 total_amt=data.get("total_amt"),
                 transactionuid=data.get("transactionuid"),
                 payment_method=data.get("payment_method"),
-                expected_delivery_date=timezone.now().date() + timedelta(days=2),
+                expected_delivery_date=timezone.now().date()
+                + timedelta(days=get_delivery_estimate_days()),
             )
 
             for item in invoice_data:
@@ -269,7 +271,7 @@ class SalesViewSet(viewsets.ModelViewSet):
         """Send an email inviting the customer to review their purchased products."""
         user = sale.costumer_name
         frontend_url = getattr(
-            settings, "FRONTEND_URL", "https://alphasuits.com.np"
+            settings, "FRONTEND_URL", "https://nepanova.com"
         ).rstrip("/")
 
         # Get all products from this order

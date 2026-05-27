@@ -6,6 +6,7 @@ import React, {
   DragEvent,
   useCallback,
   useDeferredValue,
+  useMemo,
   JSX,
 } from "react";
 import { Badge, BadgeCheck, Trash2, Truck } from "lucide-react";
@@ -28,10 +29,16 @@ import {
   useGetOrdersQuery,
   useUpdateSaleMutation,
   useDeleteSaleMutation,
+  useGetlayoutQuery,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { useRouter } from "nextjs-toploader/app";
 import { Badge as Clip } from "@/components/ui/badge";
+import {
+  addDays,
+  getStoreSettings,
+  type StoreSettings,
+} from "@/lib/store-settings";
 
 interface CartItem {
   id: number;
@@ -66,6 +73,7 @@ export interface Order {
   payment_intent_id: any;
   created: string;
   updated_at: string;
+  expected_delivery_date?: string;
 }
 
 interface State {
@@ -138,6 +146,11 @@ export const reducer = (state: State, action: Action): State => {
 const Kanban = ({ deferredSearch }: { deferredSearch?: string }) => {
   const { accessToken } = useAuthUser();
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const storeSettings = useMemo(
+    () => getStoreSettings(layoutData?.config),
+    [layoutData],
+  );
 
   const {
     data: onShippingOrders,
@@ -249,6 +262,7 @@ const Kanban = ({ deferredSearch }: { deferredSearch?: string }) => {
           refetchData={refetchData}
           loadMore={() => loadMore("onshipping")}
           loading={isLoadingOnShipping}
+          storeSettings={storeSettings}
         />
         <Column
           title="OnShipping"
@@ -258,6 +272,7 @@ const Kanban = ({ deferredSearch }: { deferredSearch?: string }) => {
           refetchData={refetchData}
           loadMore={() => loadMore("arrived")}
           loading={isLoadingArrived}
+          storeSettings={storeSettings}
         />
         <Column
           title="Delivered"
@@ -267,6 +282,7 @@ const Kanban = ({ deferredSearch }: { deferredSearch?: string }) => {
           refetchData={refetchData}
           loadMore={() => loadMore("delivered")}
           loading={isLoadingDelivered}
+          storeSettings={storeSettings}
         />
         <Column
           title="Canceled"
@@ -276,6 +292,7 @@ const Kanban = ({ deferredSearch }: { deferredSearch?: string }) => {
           refetchData={refetchData}
           loadMore={() => loadMore("canceled")}
           loading={isLoadingCanceled}
+          storeSettings={storeSettings}
         />
       </div>
     </div>
@@ -290,6 +307,7 @@ type ColumnProps = {
   refetchData: (type: string, multiple: boolean) => void;
   loadMore: () => void;
   loading: boolean;
+  storeSettings: StoreSettings;
 };
 
 const getStatusTransition = (
@@ -314,6 +332,7 @@ const Column = ({
   refetchData,
   loadMore,
   loading,
+  storeSettings,
 }: ColumnProps) => {
   const { accessToken } = useAuthUser();
   const [updateSale] = useUpdateSaleMutation();
@@ -554,6 +573,7 @@ const Column = ({
                   handleDragStart={handleDragStart}
                   handleUpdateSale={handleUpdateSale}
                   handleDeleteSale={handleDeleteSale}
+                  storeSettings={storeSettings}
                 />
               );
             })
@@ -605,11 +625,14 @@ const Card = ({
   handleDragStart,
   handleUpdateSale,
   handleDeleteSale,
+  expected_delivery_date,
+  storeSettings,
 }: Order & {
   handleDragStart: DragStartHandler;
   handleUpdateSale: any;
   handleDeleteSale: (id: number) => Promise<void>;
   title: string;
+  storeSettings: StoreSettings;
 }) => {
   const route = useRouter();
 
@@ -631,9 +654,7 @@ const Card = ({
     created: string,
     daysToAdd: number,
   ): string => {
-    const createdDate = new Date(created);
-    createdDate.setDate(createdDate.getDate() + daysToAdd);
-    return formatDate(createdDate);
+    return formatDate(addDays(new Date(created), daysToAdd));
   };
 
   const handleMotionDragStart = (
@@ -733,7 +754,13 @@ const Card = ({
           </div>
         </span>
         <p className="text-sm text-neutral-500 flex items-center gap-1 pt-2">
-          Estimated arrival: {calculateEstimatedArrival(created, 7)}
+          Estimated arrival:{" "}
+          {expected_delivery_date
+            ? formatDate(new Date(expected_delivery_date))
+            : calculateEstimatedArrival(
+                created,
+                storeSettings.deliveryEstimateDays,
+              )}
         </p>
         <div className="w-full flex justify-between items-end">
           <p>Total: रु {total_amt}</p>

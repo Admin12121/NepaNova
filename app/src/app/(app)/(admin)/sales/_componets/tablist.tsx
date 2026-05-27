@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   useGetOrdersQuery,
   useUpdateSaleMutation,
   useDeleteSaleMutation,
+  useGetlayoutQuery,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,6 +60,7 @@ export interface Order {
   payment_intent_id: any;
   created: string;
   updated_at: string;
+  expected_delivery_date?: string;
 }
 
 const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
@@ -77,6 +79,11 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
   } = useGetOrdersQuery(
     { token: accessToken, status: status, page: page, search: deferredSearch },
     { skip: !accessToken },
+  );
+  const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const storeSettings = useMemo(
+    () => getStoreSettings(layoutData?.config),
+    [layoutData],
   );
 
   useEffect(() => {
@@ -210,6 +217,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             loadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
+            storeSettings={storeSettings}
           />
         </TabsContent>
         <TabsContent value="onshipping" className="w-full h-full">
@@ -220,6 +228,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             loadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
+            storeSettings={storeSettings}
           />
         </TabsContent>
         <TabsContent value="arrived" className="w-full h-full">
@@ -230,6 +239,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             loadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
+            storeSettings={storeSettings}
           />
         </TabsContent>
         <TabsContent value="delivered" className="w-full h-full">
@@ -240,6 +250,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             loadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
+            storeSettings={storeSettings}
           />
         </TabsContent>
         <TabsContent value="canceled" className="w-full h-full">
@@ -250,6 +261,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             loadMore={loadMore}
             hasMore={hasMore}
             loading={loading}
+            storeSettings={storeSettings}
           />
         </TabsContent>
       </Tabs>
@@ -276,6 +288,11 @@ import {
 } from "@/components/ui/tooltip";
 import { renderBadge } from "@/components/global/renderBadge";
 import { toast } from "sonner";
+import {
+  addDays,
+  getStoreSettings,
+  type StoreSettings,
+} from "@/lib/store-settings";
 
 const OrderComponent = ({
   data,
@@ -284,6 +301,7 @@ const OrderComponent = ({
   loadMore,
   hasMore,
   loading,
+  storeSettings,
 }: {
   data: Order[];
   handleUpdateSale: (id: number, status: string) => Promise<void>;
@@ -291,6 +309,7 @@ const OrderComponent = ({
   loadMore: any;
   hasMore: boolean;
   loading: boolean;
+  storeSettings: StoreSettings;
 }) => {
   // Only show full-page spinner on initial load (when no data exists yet)
   if (loading && data.length === 0) {
@@ -320,6 +339,7 @@ const OrderComponent = ({
                   order={order}
                   handleUpdateSale={handleUpdateSale}
                   handleDeleteSale={handleDeleteSale}
+                  storeSettings={storeSettings}
                 />
               </AccordionItem>
             ))}
@@ -347,10 +367,12 @@ const OrderDetails = ({
   order,
   handleUpdateSale,
   handleDeleteSale,
+  storeSettings,
 }: {
   order: Order;
   handleUpdateSale: (id: number, status: string) => Promise<void>;
   handleDeleteSale: (id: number) => Promise<void>;
+  storeSettings: StoreSettings;
 }) => {
   const router = useRouter();
   const truncateText = useCallback(
@@ -372,9 +394,7 @@ const OrderDetails = ({
     created: string,
     daysToAdd: number,
   ): string => {
-    const createdDate = new Date(created);
-    createdDate.setDate(createdDate.getDate() + daysToAdd);
-    return formatDate(createdDate);
+    return formatDate(addDays(new Date(created), daysToAdd));
   };
 
   return (
@@ -490,7 +510,8 @@ const OrderDetails = ({
         <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">
           <span className="p-2 border-1 rounded-xl">
             <p className="text-sm flex items-center gap-1">
-              <Truck className="w-4 h-4" /> Kathmandu, Nepal
+              <Truck className="w-4 h-4" /> {storeSettings.originCity},{" "}
+              {storeSettings.originCountry}
             </p>
           </span>
           <span className="flex items-center justify-center">
@@ -498,16 +519,20 @@ const OrderDetails = ({
             <span className="p-2 border-1 rounded-xl">
               <p className="text-sm text-neutral-500">
                 {order.status === "unpaid"
-                  ? "Complete Payment within 24 hrs"
+                  ? `Complete Payment within ${storeSettings.paymentWindowHours} hrs`
                   : order.status === "successful" ||
                       order.status === "delivered"
                     ? "Delivered Successfully"
                     : order.status === "cancelled"
                       ? "Cancelled"
-                      : `Estimated arrival: ${calculateEstimatedArrival(
-                          order?.created,
-                          7,
-                        )}`}
+                      : `Estimated arrival: ${
+                          order.expected_delivery_date
+                            ? formatDate(new Date(order.expected_delivery_date))
+                            : calculateEstimatedArrival(
+                                order?.created,
+                                storeSettings.deliveryEstimateDays,
+                              )
+                        }`}
               </p>
             </span>
             <RightIcon className="dark:fill-white/70 dark:stroke-white/70 stroke-neutral-700 hidden lg:flex" />

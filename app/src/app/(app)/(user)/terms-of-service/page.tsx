@@ -24,7 +24,7 @@ const items = [
           <span>
             <p>
               This website is operated by NepaNova Impact, a private limited
-              liability company incorporated in Sundhara, Kathmandu, Nepal.
+              liability company incorporated in Nepal.
               Throughout the site, the terms “we”, “us” and “our” refer to
               NepaNova Impact. NepaNova Impact offers this website, including all
               information, tools, and services available from this site to you,

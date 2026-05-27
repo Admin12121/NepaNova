@@ -6,7 +6,7 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "server.alphasuits.com.np",
+                hostname: "server.nepanova.com",
                 pathname: "/media/**",
             },
             {

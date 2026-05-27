@@ -3,6 +3,8 @@ import logging
 from django.conf import settings
 from django.db import OperationalError, ProgrammingError, transaction
 
+from layout.utils import DEFAULT_STORE_SETTINGS
+
 from .rbac import DEFAULT_RBAC_PERMISSIONS
 
 logger = logging.getLogger(__name__)
@@ -122,6 +124,7 @@ def get_default_home_layout():
             "message": "",
             "date": "",
         },
+        "storeSettings": DEFAULT_STORE_SETTINGS.copy(),
         "filters": {
             "category": [],
             "materials": {
@@ -222,14 +225,30 @@ def seed_admin_user(roles):
 def seed_default_layout():
     from layout.models import Layout
 
+    default_config = get_default_home_layout()
     layout, created = Layout.objects.get_or_create(
         slug="home",
-        defaults={"config": get_default_home_layout()},
+        defaults={"config": default_config},
     )
 
     if not created and not layout.config:
-        layout.config = get_default_home_layout()
+        layout.config = default_config
         layout.save(update_fields=["config"])
+    elif not created and isinstance(layout.config, dict):
+        config = layout.config
+        changed = False
+        if not isinstance(config.get("storeSettings"), dict):
+            config["storeSettings"] = DEFAULT_STORE_SETTINGS.copy()
+            changed = True
+        else:
+            for key, value in DEFAULT_STORE_SETTINGS.items():
+                if key not in config["storeSettings"]:
+                    config["storeSettings"][key] = value
+                    changed = True
+
+        if changed:
+            layout.config = config
+            layout.save(update_fields=["config"])
 
     return layout
 

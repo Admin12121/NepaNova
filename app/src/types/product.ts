@@ -10,6 +10,7 @@ export interface FormValues {
     size?: string;
     color_code?: string;
     color_name?: string;
+    attributes?: Record<string, string | number | boolean | null>;
     price: number;
     stock: number;
     discount?: number;
@@ -70,6 +71,7 @@ export interface VariantObject {
   color_code?: string | null;
   color_name?: string | null;
   size: string | null;
+  attributes?: Record<string, string | number | boolean | null>;
   price: number;
   discount: number;
   stock: number;
@@ -81,6 +83,7 @@ export interface Variant {
   color_code?: string | null;
   color_name?: string | null;
   size?: string;
+  attributes?: Record<string, string | number | boolean | null>;
   price: number;
   stock: number;
   discount?: number;
@@ -100,6 +103,7 @@ export interface updateFormValues {
     size?: string;
     color_code?: string;
     color_name?: string;
+    attributes?: Record<string, string | number | boolean | null>;
     price: number;
     stock: number;
     discount?: number;

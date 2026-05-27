@@ -5,6 +5,7 @@ import { Card, CardContent as CardBody } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useCallback, useDeferredValue, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { formatVariantSummary } from "@/lib/variant-attributes";
 
 const Voucher = ({
   data,
@@ -17,6 +18,7 @@ const Voucher = ({
 }) => {
   const actualprice = data.variantDetails.price;
   const discount = data.variantDetails.discount;
+  const variantSummary = formatVariantSummary(data.variantDetails);
 
   const finalPrice = useMemo(() => {
     return Number((actualprice - actualprice * (discount / 100)).toFixed(2));
@@ -54,9 +56,7 @@ const Voucher = ({
               </p>
               <p className="text-xs text-zinc-400">
                 {data.categoryname}{" "}
-                {data.variantDetails.size
-                  ? ` ( ${data.variantDetails.size}cm )`
-                  : ""}
+                {variantSummary ? ` ( ${variantSummary} )` : ""}
               </p>
             </span>
             <span>
