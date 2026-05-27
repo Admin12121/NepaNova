@@ -11,7 +11,6 @@ urlpatterns = [
     path("api/sales/", include("sales.urls")),
     path("api/products/", include("product.urls")),
     path("api/layout/", include("layout.urls")),
-    path("api/booking/", include("booking.urls")),
     # Security monitoring beacon endpoint (receives client-side fingerprint data)
     path(
         "api/security/monitor/", security_monitor_beacon, name="security-monitor-beacon"

@@ -104,6 +104,7 @@ class ProductVariant(models.Model):
         null=True, blank=True, validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     stock = models.PositiveIntegerField(validators=[MinValueValidator(0)])
+    attributes = models.JSONField(default=dict, blank=True)
 
     class Meta:
         constraints = [
@@ -123,10 +124,17 @@ class ProductVariant(models.Model):
             self.color_code = None
         if self.size == "":
             self.size = None
-        if not self.color_code and not self.size:
+        if self.attributes is None:
+            self.attributes = {}
+        if not isinstance(self.attributes, dict):
             raise ValidationError(
-                {"color_code": "Provide a color_code or a size for the variant."}
+                {"attributes": "Variant attributes must be a key/value object."}
             )
+        self.attributes = {
+            str(key).strip(): value
+            for key, value in self.attributes.items()
+            if str(key).strip()
+        }
 
         if self.color_code:
             normalized = self._normalize_color(self.color_code)
@@ -148,6 +156,18 @@ class ProductVariant(models.Model):
 
         if self.color_name:
             self.color_name = self.color_name.strip()
+
+        if self.size:
+            self.attributes.setdefault("size", self.size)
+        if self.color_code:
+            self.attributes.setdefault("color", self.color_code)
+        if self.color_name:
+            self.attributes.setdefault("color_name", self.color_name)
+
+        if not self.color_code and not self.size and not self.attributes:
+            raise ValidationError(
+                {"attributes": "Provide at least one attribute for the variant."}
+            )
 
         # Enforce uniqueness constraints manually since MySQL doesn't support conditional unique constraints
         if self.color_code is None and self.size:

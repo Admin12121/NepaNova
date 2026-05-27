@@ -34,17 +34,6 @@ export function MainNav() {
         >
           Shop
         </Link>
-        <Link
-          href="/book-now"
-          className={cn(
-            "hidden md:flex transition-colors hover:text-foreground/80",
-            pathname === "/book-now"
-              ? "text-foreground"
-              : "text-foreground/60"
-          )}
-        >
-          Book Now
-        </Link>
         <div className="w-full md:flex flex-1 md:w-auto md:flex-none flex-row gap-5">
           <PlaceholdersAndVanishInput />
         </div>

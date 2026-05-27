@@ -97,7 +97,7 @@ export const manualNavigation: ManualGroup[] = [
     ],
   },
   {
-    title: "Orders & Bookings",
+    title: "Orders",
     sections: [
       {
         title: "Sales & Orders",
@@ -105,14 +105,6 @@ export const manualNavigation: ManualGroup[] = [
         description: "View, manage, and process customer orders and sales",
         icon: "ShoppingCart",
         order: 11,
-      },
-      {
-        title: "Bookings & Measurements",
-        slug: "bookings-measurements",
-        description:
-          "Manage customer bookings, appointments, and record body measurements",
-        icon: "CalendarCheck",
-        order: 12,
       },
     ],
   },

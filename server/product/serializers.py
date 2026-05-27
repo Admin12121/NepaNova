@@ -79,6 +79,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             "price",
             "discount",
             "stock",
+            "attributes",
         ]
 
     def validate_color_code(self, value):
@@ -92,6 +93,13 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         if not re.match(r"^#[0-9A-F]{6}$", normalized):
             raise serializers.ValidationError("Invalid color code. Use #RRGGBB.")
         return normalized
+
+    def validate_attributes(self, value):
+        if value in (None, ""):
+            return {}
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Attributes must be a key/value object.")
+        return {str(key).strip(): item for key, item in value.items() if str(key).strip()}
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -391,6 +399,7 @@ class LowStockVariantSerializer(serializers.ModelSerializer):
             "price",
             "stock",
             "discount",
+            "attributes",
             "notify_users",
         ]
 

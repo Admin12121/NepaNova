@@ -31,17 +31,35 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 class UserDataSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = '__all__'
 
+    def get_roles(self, obj):
+        return list(obj.get_role_slugs())
+
+    def get_permissions(self, obj):
+        return list(obj.get_rbac_permission_codes())
+
 class UserDetailSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             'id','email', 'profile', 'username', 
-            'last_name', 'first_name', 'role', 'gender', 'dob'
+            'last_name', 'first_name', 'role', 'roles', 'permissions', 'gender', 'dob'
         ]
+
+    def get_roles(self, obj):
+        return list(obj.get_role_slugs())
+
+    def get_permissions(self, obj):
+        return list(obj.get_rbac_permission_codes())
         
 class SocialLoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
@@ -82,6 +100,53 @@ class UserDeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDevice
         fields = '__all__'
+
+class RbacPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RbacPermission
+        fields = '__all__'
+
+class RoleSerializer(serializers.ModelSerializer):
+    permission_codes = serializers.SerializerMethodField()
+    user_count = serializers.SerializerMethodField()
+    permissions = serializers.PrimaryKeyRelatedField(
+        queryset=RbacPermission.objects.all(), many=True, required=False
+    )
+
+    class Meta:
+        model = Role
+        fields = [
+            'id', 'name', 'slug', 'color', 'position', 'is_default', 'is_system',
+            'permissions', 'permission_codes', 'user_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_permission_codes(self, obj):
+        return list(obj.permissions.values_list('code', flat=True))
+
+    def get_user_count(self, obj):
+        return obj.user_assignments.count()
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
+    role_slug = serializers.CharField(source='role.slug', read_only=True)
+    assigned_by_email = serializers.EmailField(
+        source='assigned_by.email', read_only=True
+    )
+
+    class Meta:
+        model = UserRole
+        fields = [
+            'id', 'user', 'user_email', 'role', 'role_name', 'role_slug',
+            'assigned_by', 'assigned_by_email', 'assigned_at'
+        ]
+        read_only_fields = ['assigned_by', 'assigned_at']
+
+class UserRoleAssignmentSerializer(serializers.Serializer):
+    role_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), allow_empty=True
+    )
 
 class DeliveryAddressSerializer(serializers.ModelSerializer):
     class Meta:

@@ -95,14 +95,10 @@ export const userAuthapi = createApi({
     "Layout",
     "Newsletter",
     "Users",
-    "Bookings",
-    "BookingDetail",
-    "BookingStats",
     "DashboardStats",
     "SalesChart",
     "TopProducts",
     "RecentOrders",
-    "RecentBookings",
     "VisitorStats",
     "CategoryPerformance",
     "TrendingProducts",
@@ -1061,16 +1057,6 @@ export const userAuthapi = createApi({
       keepUnusedDataFor: 60,
     }),
 
-    getRecentBookings: builder.query({
-      query: ({ token, limit }) => ({
-        url: `api/sales/dashboard/recent-bookings/${buildQueryParams({ limit })}`,
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-      providesTags: [{ type: "RecentBookings", id: "LIST" }],
-      keepUnusedDataFor: 60,
-    }),
-
     getVisitorStats: builder.query({
       query: ({ token }) => ({
         url: "api/sales/dashboard/visitors/",
@@ -1091,173 +1077,6 @@ export const userAuthapi = createApi({
       keepUnusedDataFor: 5 * 60,
     }),
 
-    // ==================== BOOKING API ====================
-
-    createBooking: builder.mutation({
-      query: ({ data, token }: { data: any; token?: string }) => ({
-        url: "api/booking/bookings/",
-        method: "POST",
-        body: data,
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: [
-        "Bookings",
-        "BookingStats",
-        { type: "RecentBookings", id: "LIST" },
-      ],
-    }),
-
-    getBookings: builder.query({
-      query: ({
-        token,
-        status,
-        measurement_type,
-        search,
-        start_date,
-        end_date,
-        page,
-        rowsperpage,
-      }) => ({
-        url: `api/booking/bookings/${buildQueryParams({
-          status,
-          measurement_type,
-          search,
-          start_date,
-          end_date,
-          page,
-          page_size: rowsperpage,
-        })}`,
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-      providesTags: (result: any) => {
-        if (Array.isArray(result)) {
-          return [
-            ...result.map((b: any) => ({
-              type: "Bookings" as const,
-              id: b.id,
-            })),
-            { type: "Bookings" as const, id: "LIST" },
-          ];
-        }
-        return [{ type: "Bookings" as const, id: "LIST" }];
-      },
-    }),
-
-    getBooking: builder.query({
-      query: ({ id, token }) => ({
-        url: `api/booking/bookings/${id}/`,
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-      providesTags: (_result: any, _error: any, arg: any) => [
-        { type: "BookingDetail" as const, id: arg.id },
-      ],
-    }),
-
-    updateBooking: builder.mutation({
-      query: ({ id, data, token }) => ({
-        url: `api/booking/bookings/${id}/`,
-        method: "PATCH",
-        body: data,
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: (_result: any, _error: any, arg: any) => [
-        "Bookings",
-        { type: "BookingDetail" as const, id: arg.id },
-        "BookingStats",
-        { type: "RecentBookings", id: "LIST" },
-      ],
-    }),
-
-    updateBookingStatus: builder.mutation({
-      query: ({ id, status, token }) => ({
-        url: `api/booking/bookings/${id}/update_status/`,
-        method: "PATCH",
-        body: { status },
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: (_result: any, _error: any, arg: any) => [
-        "Bookings",
-        { type: "BookingDetail" as const, id: arg.id },
-        "BookingStats",
-        { type: "RecentBookings", id: "LIST" },
-      ],
-    }),
-
-    updateMeasurements: builder.mutation({
-      query: ({ id, data, token }) => ({
-        url: `api/booking/bookings/${id}/update_measurements/`,
-        method: "PATCH",
-        body: data,
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: (_result: any, _error: any, arg: any) => [
-        "Bookings",
-        { type: "BookingDetail" as const, id: arg.id },
-        "BookingStats",
-      ],
-    }),
-
-    deleteBooking: builder.mutation({
-      query: ({ id, token }) => ({
-        url: `api/booking/bookings/${id}/`,
-        method: "DELETE",
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: [
-        "Bookings",
-        "BookingStats",
-        { type: "RecentBookings", id: "LIST" },
-      ],
-    }),
-
-    updateBill: builder.mutation({
-      query: ({ id, data, token }) => ({
-        url: `api/booking/bookings/${id}/update_bill/`,
-        method: "PATCH",
-        body: data,
-        headers: createHeaders(token),
-      }),
-      invalidatesTags: (_result: any, _error: any, arg: any) => [
-        "Bookings",
-        { type: "BookingDetail" as const, id: arg.id },
-      ],
-    }),
-
-    sendBillEmail: builder.mutation({
-      query: ({ id, token }) => ({
-        url: `api/booking/bookings/${id}/send_bill_email/`,
-        method: "POST",
-        headers: createHeaders(token),
-      }),
-    }),
-
-    getBookingStats: builder.query({
-      query: ({ token }) => ({
-        url: "api/booking/bookings/stats/",
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-      providesTags: ["BookingStats"],
-    }),
-
-    customerLookup: builder.query({
-      query: ({ query, token }) => ({
-        url: `api/booking/customer-lookup/?q=${query}`,
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-      keepUnusedDataFor: 30,
-    }),
-
-    generateBillNumber: builder.query({
-      query: ({ token }) => ({
-        url: "api/booking/generate-bill/",
-        method: "GET",
-        headers: createHeaders(token),
-      }),
-    }),
   }),
 });
 
@@ -1340,20 +1159,6 @@ export const {
   useGetSalesChartQuery,
   useGetTopProductsQuery,
   useGetRecentOrdersQuery,
-  useGetRecentBookingsQuery,
   useGetVisitorStatsQuery,
   useGetCategoryPerformanceQuery,
-  // Booking
-  useCreateBookingMutation,
-  useGetBookingsQuery,
-  useGetBookingQuery,
-  useUpdateBookingMutation,
-  useUpdateBookingStatusMutation,
-  useUpdateMeasurementsMutation,
-  useDeleteBookingMutation,
-  useUpdateBillMutation,
-  useSendBillEmailMutation,
-  useGetBookingStatsQuery,
-  useCustomerLookupQuery,
-  useGenerateBillNumberQuery,
 } = userAuthapi;

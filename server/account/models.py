@@ -6,8 +6,10 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import FileExtensionValidator
 from django.db import models
+from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 from PIL import Image
 
 
@@ -127,6 +129,96 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         return self.is_admin
+
+    def get_role_slugs(self):
+        try:
+            return set(
+                self.rbac_roles.select_related("role").values_list(
+                    "role__slug", flat=True
+                )
+            )
+        except (OperationalError, ProgrammingError):
+            return set()
+
+    def get_rbac_permission_codes(self):
+        try:
+            if self.is_superuser or self.is_admin:
+                return set(RbacPermission.objects.values_list("code", flat=True))
+            return set(
+                RbacPermission.objects.filter(roles__user_assignments__user=self)
+                .values_list("code", flat=True)
+                .distinct()
+            )
+        except (OperationalError, ProgrammingError):
+            return set()
+
+    def has_rbac_permission(self, code):
+        if self.is_superuser or self.is_admin:
+            return True
+        return code in self.get_rbac_permission_codes()
+
+
+class RbacPermission(models.Model):
+    code = models.CharField(max_length=120, unique=True)
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["code"]
+
+    def __str__(self):
+        return self.code
+
+
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
+    color = models.CharField(max_length=7, default="#737373")
+    position = models.PositiveIntegerField(default=0, db_index=True)
+    is_default = models.BooleanField(default=False)
+    is_system = models.BooleanField(default=False)
+    permissions = models.ManyToManyField(
+        RbacPermission, blank=True, related_name="roles"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-position", "name"]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class UserRole(models.Model):
+    user = models.ForeignKey(
+        User, related_name="rbac_roles", on_delete=models.CASCADE
+    )
+    role = models.ForeignKey(
+        Role, related_name="user_assignments", on_delete=models.CASCADE
+    )
+    assigned_by = models.ForeignKey(
+        User,
+        related_name="rbac_assignments_made",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "role")
+        ordering = ["-assigned_at"]
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.role.name}"
 
 
 class Account(models.Model):

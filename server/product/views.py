@@ -1,3 +1,4 @@
+import json
 from collections import Counter
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -172,8 +173,9 @@ class ProductViewSet(viewsets.ModelViewSet):
             discount = data.get(f"variants[{index}][discount]")
             color_code = data.get(f"variants[{index}][color_code]")
             color_name = data.get(f"variants[{index}][color_name]")
+            attributes = self._extract_attributes(data, f"variants[{index}]")
 
-            if any([size, price, stock, discount, color_code, color_name]):
+            if any([size, price, stock, discount, color_code, color_name, attributes]):
                 variant = {
                     "id": variant_id,
                     "size": size,
@@ -182,12 +184,52 @@ class ProductViewSet(viewsets.ModelViewSet):
                     "discount": discount,
                     "color_code": color_code,
                     "color_name": color_name,
+                    "attributes": attributes,
                 }
                 variants_data.append(variant)
                 index += 1
             else:
                 break
         return variants_data
+
+    def _coerce_attributes(self, value):
+        if value in (None, ""):
+            return {}
+        if isinstance(value, dict):
+            return value.copy()
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise ValidationError(
+                    {"attributes": "Attributes must be valid JSON."}
+                ) from exc
+            if not isinstance(parsed, dict):
+                raise ValidationError(
+                    {"attributes": "Attributes must be a key/value object."}
+                )
+            return parsed
+        raise ValidationError({"attributes": "Attributes must be a key/value object."})
+
+    def _extract_attributes(self, data, prefix=None):
+        direct_key = f"{prefix}[attributes]" if prefix else "attributes"
+        attributes = self._coerce_attributes(data.get(direct_key))
+        nested_prefix = f"{direct_key}["
+        for key in data.keys():
+            if key.startswith(nested_prefix) and key.endswith("]"):
+                attribute_key = key[len(nested_prefix) : -1].strip()
+                if attribute_key:
+                    attributes[attribute_key] = data.get(key)
+        return attributes
+
+    def _variant_key(self, color_code, size, attributes):
+        if color_code or size:
+            return (color_code or None, size or None, None)
+        return (
+            None,
+            None,
+            tuple(sorted((str(key), str(value)) for key, value in attributes.items())),
+        )
 
     def _extract_images_data(self, data):
         images_data = []
@@ -239,6 +281,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 "price": variant_data.get("price"),
                 "stock": variant_data.get("stock"),
                 "discount": variant_data.get("discount"),
+                "attributes": variant_data.get("attributes", {}),
             }
             variant_serializer = ProductVariantSerializer(data=variant_payload)
             variant_serializer.is_valid(raise_exception=True)
@@ -257,6 +300,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             "price": single_variant_data.get("price"),
             "stock": single_variant_data.get("stock"),
             "discount": single_variant_data.get("discount"),
+            "attributes": self._extract_attributes(single_variant_data),
         }
         variant_serializer = ProductVariantSerializer(data=payload)
         variant_serializer.is_valid(raise_exception=True)
@@ -418,6 +462,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 "discount": data.get("discount"),
                 "color_code": data.get("color_code"),
                 "color_name": data.get("color_name"),
+                "attributes": self._extract_attributes(data),
             }
             existing_variant = instance.productvariant_set.first()
             if existing_variant:
@@ -432,6 +477,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 existing_variant.color = color_obj
                 existing_variant.color_code = color_code
                 existing_variant.color_name = color_name
+                existing_variant.attributes = single_variant_data["attributes"]
                 existing_variant.save()
             else:
                 self._create_single_variant(single_variant_data, instance)
@@ -445,7 +491,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             variant.id: variant for variant in product.productvariant_set.all()
         }
         existing_combinations = {
-            (variant.color_code or None, variant.size or None)
+            self._variant_key(
+                variant.color_code or None,
+                variant.size or None,
+                variant.attributes or {},
+            )
             for variant in existing_variants.values()
         }
 
@@ -453,9 +503,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             raw_variant_id = variant_data.get("id")
             variant_id = int(raw_variant_id) if raw_variant_id else None
             size = variant_data.get("size") or None
+            attributes = variant_data.get("attributes", {})
             color_code, color_name, color_obj = self._ensure_color_reference(
                 variant_data.get("color_code"), variant_data.get("color_name")
             )
+            variant_key = self._variant_key(color_code, size, attributes)
 
             if variant_id and variant_id in existing_variants:
                 variant = existing_variants[variant_id]
@@ -466,10 +518,11 @@ class ProductViewSet(viewsets.ModelViewSet):
                 variant.color = color_obj
                 variant.color_code = color_code
                 variant.color_name = color_name
+                variant.attributes = attributes
                 variant.save()
-                existing_combinations.add((color_code, size))
+                existing_combinations.add(variant_key)
             else:
-                if (color_code, size) in existing_combinations:
+                if variant_key in existing_combinations:
                     raise ValidationError(
                         f"Variant with the same color/size already exists for this product."
                     )
@@ -482,11 +535,12 @@ class ProductViewSet(viewsets.ModelViewSet):
                     "price": variant_data.get("price"),
                     "stock": variant_data.get("stock"),
                     "discount": variant_data.get("discount"),
+                    "attributes": attributes,
                 }
                 variant_serializer = ProductVariantSerializer(data=payload)
                 variant_serializer.is_valid(raise_exception=True)
                 variant_serializer.save()
-                existing_combinations.add((color_code, size))
+                existing_combinations.add(variant_key)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def recommended(self, request):
@@ -755,6 +809,11 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
     serializer_class = ProductVariantSerializer
     permission_classes = [IsAdminOrReadOnly]
 
+    def _has_attribute_payload(self, data):
+        return "attributes" in data or any(
+            key.startswith("attributes[") for key in data.keys()
+        )
+
     def _normalize_color_code(self, color_code):
         if not color_code:
             return None
@@ -784,6 +843,8 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             )
             data["color_code"] = normalized_code
             data["color"] = color_obj.color_code if color_obj else None
+        if self._has_attribute_payload(data):
+            data["attributes"] = ProductViewSet()._extract_attributes(data)
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -803,6 +864,10 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             data = data.copy()
             data["color_code"] = normalized_code
             data["color"] = color_obj.color_code if color_obj else None
+        else:
+            data = data.copy()
+        if self._has_attribute_payload(data):
+            data["attributes"] = ProductViewSet()._extract_attributes(data)
         serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

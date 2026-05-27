@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from account.models import SiteViewLog, User
-from booking.models import Booking
 from product.models import Category, Product, ProductVariant, Review
 from sales.models import Saled_Products, Sales
 
@@ -116,18 +115,6 @@ class DashboardStatsView(APIView):
         ).count()
         active_users = User.objects.filter(state="active").count()
 
-        # ============ BOOKING STATS ============
-        bookings_in_period = Booking.objects.filter(
-            created_at__date__gte=start_date, created_at__date__lte=end_date
-        )
-        total_bookings = bookings_in_period.count()
-        pending_bookings = bookings_in_period.filter(status="pending").count()
-        confirmed_bookings = bookings_in_period.filter(status="confirmed").count()
-
-        bookings_with_measurements = Booking.objects.exclude(
-            coat_measurements={}, pant_measurements={}, shirt_measurements={}
-        ).count()
-
         # ============ STRIGIFY DATES FOR UI ============
 
         return Response(
@@ -153,11 +140,6 @@ class DashboardStatsView(APIView):
                 # Users
                 "new_users": new_users,
                 "active_users": active_users,
-                # Bookings
-                "total_bookings": total_bookings,
-                "pending_bookings": pending_bookings,
-                "confirmed_bookings": confirmed_bookings,
-                "bookings_with_measurements": bookings_with_measurements,
                 # Meta
                 "period": {"start": start_date, "end": end_date},
             }
@@ -325,37 +307,6 @@ class RecentOrdersView(APIView):
             )
 
         return Response({"orders": recent})
-
-
-class RecentBookingsView(APIView):
-    """
-    Returns recent bookings
-    """
-
-    permission_classes = [permissions.IsAdminUser]
-
-    def get(self, request):
-        limit = int(request.query_params.get("limit", 5))
-
-        bookings = Booking.objects.all().order_by("-created_at")[:limit]
-
-        booking_list = []
-        for booking in bookings:
-            booking_list.append(
-                {
-                    "id": booking.id,
-                    "name": booking.name,
-                    "status": booking.status,
-                    "type": booking.measurement_type,
-                    "date": booking.preferred_date,
-                    "time": booking.preferred_time,
-                    "created": booking.created_at.isoformat()
-                    if booking.created_at
-                    else None,
-                }
-            )
-
-        return Response({"bookings": booking_list})
 
 
 class VisitorStatsView(APIView):

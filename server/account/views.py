@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     refresh["role"] = user.role
+    refresh["roles"] = list(user.get_role_slugs())
+    refresh["permissions"] = list(user.get_rbac_permission_codes())
     return {
         "refresh": str(refresh),
         "access": str(refresh.access_token),
@@ -94,6 +96,59 @@ class NewsLetterViewSet(viewsets.ModelViewSet):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+class RbacPermissionViewSet(viewsets.ModelViewSet):
+    queryset = RbacPermission.objects.all().order_by("code")
+    serializer_class = RbacPermissionSerializer
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["code", "name", "description"]
+    ordering_fields = ["code", "name", "created_at"]
+
+
+class RoleViewSet(viewsets.ModelViewSet):
+    queryset = Role.objects.prefetch_related("permissions").all()
+    serializer_class = RoleSerializer
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["name", "slug"]
+    ordering_fields = ["position", "name", "created_at"]
+
+    @action(detail=True, methods=["post"], url_path="assign")
+    def assign(self, request, pk=None):
+        role = self.get_object()
+        user_ids = request.data.get("user_ids", [])
+        if not isinstance(user_ids, list) or not user_ids:
+            return Response(
+                {"error": "user_ids must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        users = User.objects.filter(id__in=user_ids)
+        with transaction.atomic():
+            for user in users:
+                UserRole.objects.get_or_create(
+                    user=user, role=role, defaults={"assigned_by": request.user}
+                )
+        return Response(
+            {"message": f"Assigned {role.name} to {users.count()} user(s)."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class UserRoleViewSet(viewsets.ModelViewSet):
+    queryset = UserRole.objects.select_related("user", "role", "assigned_by").all()
+    serializer_class = UserRoleSerializer
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["user__email", "role__name", "role__slug"]
+    ordering_fields = ["assigned_at"]
+
+    def perform_create(self, serializer):
+        serializer.save(assigned_by=self.request.user)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -452,6 +507,22 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(role=role)
         return queryset
 
+    def _sync_legacy_role(self, user):
+        role_slugs = user.get_role_slugs()
+        if "admin" in role_slugs:
+            user.role = "Admin"
+            user.is_admin = True
+        elif "staff" in role_slugs:
+            user.role = "Staff"
+            user.is_admin = False
+        elif role_slugs:
+            user.role = "User"
+            user.is_admin = False
+        else:
+            user.role = "User"
+            user.is_admin = False
+        user.save(update_fields=["role", "is_admin"])
+
     @action(detail=False, methods=["get"])
     def list_users(self, request):
         queryset = self.filter_queryset(self.get_queryset())
@@ -581,6 +652,33 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user.save()
         serializer = self.get_serializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["put", "patch"], url_path="roles")
+    def set_roles(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserRoleAssignmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        role_ids = serializer.validated_data["role_ids"]
+        roles = list(Role.objects.filter(id__in=role_ids))
+        if len(roles) != len(set(role_ids)):
+            return Response(
+                {"error": "One or more roles do not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            UserRole.objects.filter(user=user).exclude(role__in=roles).delete()
+            for role in roles:
+                UserRole.objects.get_or_create(
+                    user=user, role=role, defaults={"assigned_by": request.user}
+                )
+            self._sync_legacy_role(user)
+
+        user.refresh_from_db()
+        return Response(
+            self.get_serializer(user, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class SiteViewLogViewSet(viewsets.ModelViewSet):

@@ -84,7 +84,6 @@ import {
   useGetRecentOrdersQuery,
   useGetVisitorStatsQuery,
   useGetCategoryPerformanceQuery,
-  useGetRecentBookingsQuery,
 } from "@/lib/store/Service/api";
 import { cn } from "@/lib/utils";
 
@@ -195,8 +194,6 @@ export default function DashboardPage() {
     useGetTopProductsQuery({ token, limit: 5 }, { skip }); // Top products usually all time or recent, keep as is unless requested
   const { data: recentOrders, isLoading: recentOrdersLoading } =
     useGetRecentOrdersQuery({ token, limit: 7 }, { skip });
-  const { data: recentBookings, isLoading: recentBookingsLoading } =
-    useGetRecentBookingsQuery({ token, limit: 5 }, { skip });
   const { data: visitorStats, isLoading: visitorStatsLoading } =
     useGetVisitorStatsQuery({ token }, { skip });
   const { data: categoryPerf, isLoading: categoryPerfLoading } =
@@ -551,74 +548,6 @@ export default function DashboardPage() {
                       ))
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <div className="grid gap-4 md:grid-cols-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Bookings</CardTitle>
-                <CardDescription>
-                  Latest appointments from customers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {recentBookingsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-12 w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Booking ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Preferred Date</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentBookings?.bookings.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center">
-                            No bookings found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        recentBookings?.bookings.map((booking: any) => (
-                          <TableRow key={booking.id}>
-                            <TableCell className="font-medium">
-                              #{booking.id}
-                            </TableCell>
-                            <TableCell>{booking.name}</TableCell>
-                            <TableCell className="capitalize">
-                              {booking.type}
-                            </TableCell>
-                            <TableCell>
-                              {booking.date}
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {booking.time}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  STATUS_COLORS[booking.status] || "bg-gray-100"
-                                }
-                              >
-                                {booking.status?.replace("_", " ")}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
                 )}
               </CardContent>
             </Card>

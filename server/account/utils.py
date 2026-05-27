@@ -1,10 +1,9 @@
 import logging
 import secrets
-import smtplib
 
+import resend
 from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.core.mail import EmailMessage
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -35,19 +34,26 @@ generate_token = TokenGenerator()
 
 
 def send_email(subject, email, body):
+    recipients = [email] if isinstance(email, str) else list(email)
+    if not recipients:
+        logger.warning("Email skipped because no recipients were provided.")
+        return False
+    if not settings.RESEND_API_KEY:
+        logger.error("Email skipped because RESEND_API_KEY is not configured.")
+        return False
+
     try:
-        msg = EmailMessage(
-            subject=subject,
-            body=body,
-            from_email=settings.EMAIL_HOST_USER,
-            to=[email] if isinstance(email, str) else email,
+        resend.api_key = settings.RESEND_API_KEY
+        resend.Emails.send(
+            {
+                "from": settings.RESEND_FROM_EMAIL,
+                "to": recipients,
+                "subject": subject,
+                "html": body,
+            }
         )
-        msg.content_subtype = "html"
-        msg.send(fail_silently=False)
         return True
-    except smtplib.SMTPException as e:
-        logger.error("SMTP Error while sending email to %s: %s", email, e)
     except Exception as ex:
-        logger.error("Unexpected error while sending email to %s: %s", email, ex)
+        logger.error("Resend error while sending email to %s: %s", recipients, ex)
 
     return False

@@ -5,7 +5,6 @@ import {
   Package,
   BadgePercent,
   MessageCircle,
-  CalendarCheck,
   Mail,
   BookOpenText,
 } from "lucide-react";
@@ -39,11 +38,6 @@ export const Links = [
     title: "Sales",
     icon: BadgePercent,
     href: "/sales",
-  },
-  {
-    title: "Bookings",
-    icon: CalendarCheck,
-    href: "/bookings",
   },
   {
     title: "Reviews",

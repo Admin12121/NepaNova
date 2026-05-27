@@ -6,7 +6,6 @@ from .dashboard_views import (
     SalesChartView,
     TopProductsView,
     RecentOrdersView,
-    RecentBookingsView,
     VisitorStatsView,
     CategoryPerformanceView,
 )
@@ -24,7 +23,6 @@ urlpatterns = [
     path('dashboard/sales-chart/', SalesChartView.as_view(), name='dashboard-sales-chart'),
     path('dashboard/top-products/', TopProductsView.as_view(), name='dashboard-top-products'),
     path('dashboard/recent-orders/', RecentOrdersView.as_view(), name='dashboard-recent-orders'),
-    path('dashboard/recent-bookings/', RecentBookingsView.as_view(), name='dashboard-recent-bookings'),
     path('dashboard/visitors/', VisitorStatsView.as_view(), name='dashboard-visitors'),
     path('dashboard/category-performance/', CategoryPerformanceView.as_view(), name='dashboard-category-performance'),
 ]
