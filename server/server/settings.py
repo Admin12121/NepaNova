@@ -156,10 +156,11 @@ REST_FRAMEWORK = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 RESEND_API_KEY = config("RESEND_API_KEY", default="")
+RESEND_AUDIENCE_ID = config("RESEND_AUDIENCE_ID", default="")
 RESEND_FROM_EMAIL = config(
     "RESEND_FROM_EMAIL",
-    default=config("EMAIL_HOST_USER", default="onboarding@resend.dev"),
-)
+    default="NepaNova Impact <onboarding@resend.dev>",
+) or "NepaNova Impact <onboarding@resend.dev>"
 DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL
 
 SEED_ADMIN_EMAIL = config("SEED_ADMIN_EMAIL", default="")

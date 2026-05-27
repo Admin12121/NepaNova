@@ -57,3 +57,41 @@ def send_email(subject, email, body):
         logger.error("Resend error while sending email to %s: %s", recipients, ex)
 
     return False
+
+
+def sync_resend_contact(email, properties=None):
+    if not settings.RESEND_API_KEY:
+        logger.error(
+            "Resend contact sync skipped because RESEND_API_KEY is not configured."
+        )
+        return False
+
+    params = {
+        "email": email,
+        "unsubscribed": False,
+    }
+    audience_id = getattr(settings, "RESEND_AUDIENCE_ID", "")
+    if audience_id:
+        params["audience_id"] = audience_id
+    if properties:
+        params["properties"] = properties
+
+    try:
+        resend.api_key = settings.RESEND_API_KEY
+        resend.Contacts.create(params)
+        return True
+    except Exception as create_ex:
+        logger.info(
+            "Resend contact create failed for %s; trying update: %s",
+            email,
+            create_ex,
+        )
+
+    try:
+        resend.api_key = settings.RESEND_API_KEY
+        resend.Contacts.update(params)
+        return True
+    except Exception as update_ex:
+        logger.error("Resend contact sync failed for %s: %s", email, update_ex)
+
+    return False

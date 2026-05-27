@@ -2,6 +2,11 @@ from rest_framework import serializers
 from .models import *
 
 class NewsLetterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(validators=[])
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
     class Meta:
         model = NewLetter
         fields = '__all__'

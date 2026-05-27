@@ -22,7 +22,13 @@ import { delay } from "@/lib/utils";
 interface ErrorResponse {
   data?: {
     errors?: Record<string, string[]>;
+    detail?: string;
+    message?: string;
   };
+}
+
+interface NewsletterResponse {
+  message?: string;
 }
 
 export function JoinNewsletterForm() {
@@ -43,20 +49,28 @@ export function JoinNewsletterForm() {
       await delay(500);
       const res = await postnewsletter({ actualData: data });
       if (res.error && "data" in res.error) {
+        const responseData = (res.error as ErrorResponse).data;
         const errorData: Record<string, string[]> =
-          (res.error as ErrorResponse).data?.errors || {};
+          responseData?.errors || {};
         const errorMessages = Object.values(errorData).flat().join(", ");
-        const formattedMessage = errorMessages || "An unknown error occurred";
+        const formattedMessage =
+          errorMessages ||
+          responseData?.message ||
+          responseData?.detail ||
+          "An unknown error occurred";
         toast.error(formattedMessage);
         return;
       }
       if (res.data) {
-        toast.success("You have been subscribed to our newsletter.");
+        toast.success(
+          (res.data as NewsletterResponse).message ||
+            "You have been subscribed to our newsletter.",
+        );
         form.reset();
       }
     } catch (err) {
       toast.error(unknownError);
-    } finally{
+    } finally {
       setLoading(false);
     }
   }
@@ -76,7 +90,7 @@ export function JoinNewsletterForm() {
               <FormLabel className="sr-only">Email</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="skate@gmail.com"
+                  placeholder="you@example.com"
                   className="pr-12"
                   {...field}
                 />

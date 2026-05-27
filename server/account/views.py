@@ -2,6 +2,7 @@ import logging
 import re
 
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -27,7 +28,13 @@ from server.utils.encryption import encrypt_response
 from .models import *
 from .renderers import UserRenderer
 from .serializers import *
-from .utils import generate_otp, generate_token, is_otp_valid, send_email
+from .utils import (
+    generate_otp,
+    generate_token,
+    is_otp_valid,
+    send_email,
+    sync_resend_contact,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,18 +90,50 @@ class NewsLetterViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
+        email = serializer.validated_data["email"]
+        instance, created = NewLetter.objects.get_or_create(email=email)
 
-        try:
-            subject = "Welcome to Alphasuits Newsletter 💖"
-            body = render_to_string("newsletter_welcome.html")
-            send_email(subject, instance.email, body)
-        except Exception as e:
-            logger.error("Failed to send newsletter welcome email: %s", e)
+        contact_synced = sync_resend_contact(
+            instance.email,
+            {
+                "source": "newsletter_footer",
+                "brand": "NepaNova Impact",
+            },
+        )
+        email_sent = False
 
-        headers = self.get_success_headers(serializer.data)
+        if created:
+            try:
+                subject = "Welcome to NepaNova Impact"
+                body = render_to_string(
+                    "newsletter_welcome.html",
+                    {
+                        "brand_name": "NepaNova Impact",
+                        "site_url": settings.FRONTEND_URL.rstrip("/"),
+                    },
+                )
+                email_sent = send_email(subject, instance.email, body)
+            except Exception as e:
+                logger.error("Failed to send newsletter welcome email: %s", e)
+
+        response_data = dict(self.get_serializer(instance).data)
+        response_data.update(
+            {
+                "message": (
+                    "You have been subscribed to our newsletter."
+                    if created
+                    else "This email is already subscribed to our newsletter."
+                ),
+                "email_sent": email_sent,
+                "resend_contact_synced": contact_synced,
+            }
+        )
+
+        headers = self.get_success_headers(response_data)
         return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+            response_data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            headers=headers,
         )
 
 
