@@ -40,7 +40,11 @@ import { renderUI } from "./description-automation";
 import WriteReview from "./write-review";
 import { delay } from "@/lib/utils";
 import { addDays, getStoreSettings } from "@/lib/store-settings";
-import { getVariantAttributeEntries } from "@/lib/variant-attributes";
+import {
+  formatVariantAttributeLabel,
+  getComparableVariantAttributes,
+  getVariantAttributeEntries,
+} from "@/lib/variant-attributes";
 
 const EmailSchema = z.object({
   email: z.string().min(1, { message: "UID is required" }),
@@ -108,10 +112,12 @@ const Sidebar = ({
   products,
   selectedColor,
   onColorChange,
+  onVariantChange,
 }: {
   products: Product;
   selectedColor?: { code: string; name: string } | null;
   onColorChange?: (color: { code: string; name: string }) => void;
+  onVariantChange?: (variantId: number | null) => void;
 }) => {
   const router = useRouter();
   const { status } = useAuthUser();
@@ -122,7 +128,9 @@ const Sidebar = ({
     [layoutData],
   );
 
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<
+    Record<string, string>
+  >({});
   // Use internal state only if parent doesn't control color
   const [internalColor, setInternalColor] = useState<{
     code: string;
@@ -146,86 +154,122 @@ const Sidebar = ({
   const [outOfStock, setOutOfStock] = useState<boolean>(false);
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
 
-  // All unique colors across all variants
-  const uniqueColors = useMemo(() => {
+  const variantAttributeData = useMemo(() => {
     if (!Array.isArray(variantsData)) return [];
-    const colorMap = new Map<string, { code: string; name: string }>();
-    variantsData.forEach((variant) => {
-      if (variant.color_code && variant.color_name) {
-        colorMap.set(variant.color_code, {
-          code: variant.color_code,
-          name: variant.color_name,
-        });
-      }
-    });
-    return Array.from(colorMap.values());
+    return variantsData.map((variant) => ({
+      variant,
+      attributes: getComparableVariantAttributes(variant),
+    }));
   }, [variantsData]);
 
-  // ALL unique sizes across all variants (never filtered)
-  const allUniqueSizes = useMemo(() => {
-    if (!Array.isArray(variantsData)) return [];
-    const sizeSet = new Set<string>();
-    variantsData.forEach((v) => {
-      if (v.size) sizeSet.add(v.size);
+  const attributeKeys = useMemo(() => {
+    const keys = new Set<string>();
+    variantAttributeData.forEach(({ attributes }) => {
+      Object.keys(attributes).forEach((key) => keys.add(key));
     });
-    return Array.from(sizeSet).sort(
-      (a, b) => getSizeOrder(a) - getSizeOrder(b),
-    );
-  }, [variantsData]);
-
-  // Sizes that exist for the currently selected color (for highlighting)
-  const sizesForSelectedColor = useMemo(() => {
-    if (!Array.isArray(variantsData) || !activeColor) return new Set<string>();
-    const sizes = new Set<string>();
-    variantsData.forEach((v) => {
-      if (v.color_code === activeColor.code && v.size) {
-        sizes.add(v.size);
+    return Array.from(keys).sort((a, b) => {
+      const order = ["color", "size"];
+      const aIndex = order.indexOf(a);
+      const bIndex = order.indexOf(b);
+      if (aIndex !== -1 || bIndex !== -1) {
+        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
       }
+      return a.localeCompare(b);
     });
-    return sizes;
-  }, [variantsData, activeColor]);
+  }, [variantAttributeData]);
 
-  // Colors that exist for the currently selected size (for highlighting)
-  const colorsForSelectedSize = useMemo(() => {
-    if (!Array.isArray(variantsData) || !selectedSize) return new Set<string>();
-    const codes = new Set<string>();
-    variantsData.forEach((v) => {
-      if (v.size === selectedSize && v.color_code) {
-        codes.add(v.color_code);
-      }
+  const attributeOptions = useMemo(() => {
+    const options = new Map<
+      string,
+      Array<{ value: string; label: string; color?: string }>
+    >();
+    variantAttributeData.forEach(({ variant, attributes }) => {
+      Object.entries(attributes).forEach(([key, value]) => {
+        const stringValue = String(value);
+        const existing = options.get(key) || [];
+        if (!existing.some((item) => item.value === stringValue)) {
+          existing.push({
+            value: stringValue,
+            label:
+              key === "color"
+                ? variant.color_name || stringValue
+                : stringValue,
+            color: key === "color" ? stringValue : undefined,
+          });
+        }
+        options.set(key, existing);
+      });
     });
-    return codes;
-  }, [variantsData, selectedSize]);
+    options.forEach((items, key) => {
+      items.sort((a, b) =>
+        key === "size"
+          ? getSizeOrder(a.value) - getSizeOrder(b.value)
+          : a.label.localeCompare(b.label),
+      );
+    });
+    return options;
+  }, [variantAttributeData]);
 
-  // The matched variant based on selected color + size
   const matchedVariant = useMemo(() => {
     if (!Array.isArray(variantsData)) return variantsData;
-    if (!activeColor || !selectedSize) return null;
+    if (attributeKeys.some((key) => !selectedAttributes[key])) return null;
     return (
-      variantsData.find(
-        (v) => v.color_code === activeColor.code && v.size === selectedSize,
-      ) || null
+      variantAttributeData.find(({ attributes }) =>
+        attributeKeys.every(
+          (key) => String(attributes[key]) === selectedAttributes[key],
+        ),
+      )?.variant || null
     );
-  }, [variantsData, activeColor, selectedSize]);
+  }, [variantsData, attributeKeys, selectedAttributes, variantAttributeData]);
+
+  const selectAttribute = (key: string, value: string) => {
+    const next = { ...selectedAttributes, [key]: value };
+    const exactMatch = variantAttributeData.find(({ attributes }) =>
+      attributeKeys.every(
+        (attributeKey) =>
+          !next[attributeKey] || String(attributes[attributeKey]) === next[attributeKey],
+      ),
+    );
+    if (exactMatch) {
+      attributeKeys.forEach((attributeKey) => {
+        if (exactMatch.attributes[attributeKey] !== undefined) {
+          next[attributeKey] = String(exactMatch.attributes[attributeKey]);
+        }
+      });
+    }
+    setSelectedAttributes(next);
+  };
 
   // Initialize variants and default selections
   useEffect(() => {
     if (products?.variants) {
       if (!Array.isArray(products.variants)) {
         setVariantsData(products.variants);
-        setSelectedSize(products.variants.size);
+        setSelectedAttributes(
+          Object.fromEntries(
+            Object.entries(getComparableVariantAttributes(products.variants)).map(
+              ([key, value]) => [key, String(value)],
+            ),
+          ),
+        );
       } else {
         setVariantsData(products.variants);
         const firstVariant = products.variants[0];
         if (firstVariant) {
+          const firstAttributes = getComparableVariantAttributes(firstVariant);
+          setSelectedAttributes(
+            Object.fromEntries(
+              Object.entries(firstAttributes).map(([key, value]) => [
+                key,
+                String(value),
+              ]),
+            ),
+          );
           if (firstVariant.color_code && firstVariant.color_name) {
             setActiveColor({
               code: firstVariant.color_code,
               name: firstVariant.color_name,
             });
-          }
-          if (firstVariant.size) {
-            setSelectedSize(firstVariant.size);
           }
         }
         const anyOutOfStock = products.variants.some((v) => v.stock === 0);
@@ -234,52 +278,33 @@ const Sidebar = ({
     }
   }, [products]);
 
-  // When color changes, auto-switch size if current combo doesn't exist
   useEffect(() => {
-    if (!Array.isArray(variantsData) || !activeColor) return;
-    const sizesForColor = variantsData
-      .filter((v) => v.color_code === activeColor.code)
-      .map((v) => v.size);
-    if (!selectedSize || !sizesForColor.includes(selectedSize)) {
-      const sorted = sizesForColor
-        .filter((s): s is string => s !== null)
-        .sort((a, b) => getSizeOrder(a) - getSizeOrder(b));
-      setSelectedSize(sorted[0] || null);
+    const selectedColorValue = selectedAttributes.color;
+    if (!selectedColorValue) return;
+    const option = attributeOptions
+      .get("color")
+      ?.find((item) => item.value === selectedColorValue);
+    if (option) {
+      setActiveColor({ code: option.value, name: option.label });
     }
-  }, [activeColor, variantsData]);
-
-  // When size changes, auto-switch color if current combo doesn't exist
-  useEffect(() => {
-    if (!Array.isArray(variantsData) || !selectedSize) return;
-    const colorsForSize = variantsData
-      .filter((v) => v.size === selectedSize)
-      .map((v) => v.color_code);
-    if (!activeColor || !colorsForSize.includes(activeColor.code)) {
-      const firstMatch = variantsData.find(
-        (v) => v.size === selectedSize && v.color_code && v.color_name,
-      );
-      if (firstMatch && firstMatch.color_code && firstMatch.color_name) {
-        setActiveColor({
-          code: firstMatch.color_code,
-          name: firstMatch.color_name,
-        });
-      }
-    }
-  }, [selectedSize, variantsData]);
+  }, [selectedAttributes.color, attributeOptions]);
 
   // Update variant out-of-stock state based on matched variant
   useEffect(() => {
     if (matchedVariant) {
       setSelectedVariant(matchedVariant.id);
+      onVariantChange?.(matchedVariant.id);
       setSelectedVariantOutOfStock(matchedVariant.stock === 0);
     } else if (variantsData && !Array.isArray(variantsData)) {
       setSelectedVariant(variantsData.id);
+      onVariantChange?.(variantsData.id);
       setSelectedVariantOutOfStock(variantsData.stock === 0);
     } else {
       setSelectedVariant(null);
+      onVariantChange?.(null);
       setSelectedVariantOutOfStock(false);
     }
-  }, [matchedVariant, variantsData]);
+  }, [matchedVariant, variantsData, onVariantChange]);
 
   const convertedPrice = matchedVariant
     ? Number(matchedVariant.price)
@@ -296,18 +321,16 @@ const Sidebar = ({
     : !Array.isArray(variantsData) && variantsData
       ? variantsData.stock
       : 0;
-  const selectedSizeAttribute = useMemo(() => {
-    if (matchedVariant) {
-      const sizeEntry = getVariantAttributeEntries(matchedVariant).find(
-        (entry) => entry.label === "Size",
-      );
-      if (sizeEntry) {
-        return sizeEntry;
-      }
-    }
-
-    return selectedSize ? { label: "Size", value: selectedSize } : null;
-  }, [matchedVariant, selectedSize]);
+  const selectedDetailEntries = useMemo(
+    () =>
+      matchedVariant
+        ? getVariantAttributeEntries(matchedVariant, { includeColor: true })
+        : Object.entries(selectedAttributes).map(([key, value]) => ({
+            label: formatVariantAttributeLabel(key),
+            value,
+          })),
+    [matchedVariant, selectedAttributes],
+  );
   const finalPrice = useMemo(() => {
     return Number(
       (convertedPrice - convertedPrice * (discount / 100)).toFixed(2),
@@ -405,112 +428,115 @@ const Sidebar = ({
           <CardBody className="flex flex-col p-4 gap-5 flex-initial ">
             {Array.isArray(variantsData) && (
               <>
-                {uniqueColors.length > 0 && (
-                  <span className="flex gap-3 flex-col">
-                    <p className="text-sm">Color</p>
-                    <span className="flex gap-2 items-center flex-wrap">
-                      {uniqueColors.map((color) => {
-                        const isActive = activeColor?.code === color.code;
-                        const hasCurrentSize =
-                          !selectedSize ||
-                          colorsForSelectedSize.has(color.code);
-                        return (
-                          <button
-                            key={color.code}
-                            type="button"
-                            onClick={() => setActiveColor(color)}
-                            className={cn(
-                              "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all",
-                              isActive
-                                ? "border-neutral-900 dark:border-neutral-100 ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100"
-                                : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-500",
-                              !hasCurrentSize && !isActive && "opacity-60",
-                            )}
-                            style={{ backgroundColor: color.code }}
-                            title={color.name}
-                            aria-label={`Select ${color.name} color`}
-                          >
-                            {isActive && (
-                              <svg
-                                className="w-5 h-5"
-                                style={{
-                                  color:
-                                    parseInt(color.code.slice(1), 16) >
-                                    0xffffff / 2
-                                      ? "#000000"
-                                      : "#ffffff",
-                                }}
-                                fill="none"
-                                strokeWidth={3}
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                {attributeKeys.map((attributeKey) => {
+                  const options = attributeOptions.get(attributeKey) || [];
+                  if (options.length === 0) return null;
+                  return (
+                    <span key={attributeKey} className="flex gap-3 flex-col">
+                      <p className="text-sm">
+                        {formatVariantAttributeLabel(attributeKey)}
+                      </p>
+                      <span className="flex gap-2 items-center flex-wrap">
+                        {options.map((option) => {
+                          const isActive =
+                            selectedAttributes[attributeKey] === option.value;
+                          const hasCurrentSelection = variantAttributeData.some(
+                            ({ attributes }) =>
+                              attributeKeys.every((key) => {
+                                const selected =
+                                  key === attributeKey
+                                    ? option.value
+                                    : selectedAttributes[key];
+                                return (
+                                  !selected ||
+                                  String(attributes[key]) === selected
+                                );
+                              }),
+                          );
+
+                          if (attributeKey === "color") {
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() =>
+                                  selectAttribute(attributeKey, option.value)
+                                }
+                                className={cn(
+                                  "w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all",
+                                  isActive
+                                    ? "border-neutral-900 dark:border-neutral-100 ring-2 ring-offset-2 ring-neutral-900 dark:ring-neutral-100"
+                                    : "border-neutral-300 dark:border-neutral-700 hover:border-neutral-500",
+                                  !hasCurrentSelection &&
+                                    !isActive &&
+                                    "opacity-60",
+                                )}
+                                style={{ backgroundColor: option.color }}
+                                title={option.label}
+                                aria-label={`Select ${option.label}`}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
+                                {isActive && (
+                                  <svg
+                                    className="w-5 h-5"
+                                    style={{
+                                      color:
+                                        parseInt(
+                                          option.value.replace("#", ""),
+                                          16,
+                                        ) >
+                                        0xffffff / 2
+                                          ? "#000000"
+                                          : "#ffffff",
+                                    }}
+                                    fill="none"
+                                    strokeWidth={3}
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <Button
+                              key={option.value}
+                              variant={isActive ? "active" : "secondary"}
+                              size="sm"
+                              onClick={() =>
+                                selectAttribute(attributeKey, option.value)
+                              }
+                              className={cn(
+                                !hasCurrentSelection && !isActive && "opacity-60",
+                              )}
+                            >
+                              {option.label}
+                            </Button>
+                          );
+                        })}
+                      </span>
                     </span>
-                  </span>
-                )}
-                {allUniqueSizes.length > 0 && (
-                  <span className="flex gap-3 flex-col">
-                    <p className="text-sm">Variant Option</p>
-                    <span className="flex gap-2 items-center flex-wrap">
-                      {allUniqueSizes.map((size) => {
-                        const isActive = selectedSize === size;
-                        const hasCurrentColor =
-                          !activeColor || sizesForSelectedColor.has(size);
-                        return (
-                          <Button
-                            key={size}
-                            variant={isActive ? "active" : "secondary"}
-                            size="sm"
-                            onClick={() => setSelectedSize(size)}
-                            className={cn(
-                              !hasCurrentColor && !isActive && "opacity-60",
-                            )}
-                          >
-                            {size}
-                          </Button>
-                        );
-                      })}
-                    </span>
-                  </span>
-                )}
+                  );
+                })}
                 <Card className="w-full mt-5 rounded-md bg-white dark:bg-neutral-900 border-none shadow-none p-3">
                   <CardBody>
                     <p className="text-sm text-zinc-400">Details</p>
                     <Divider className="my-1" />
-                    {selectedSizeAttribute && (
-                      <span className="flex justify-between items-center">
-                        <p className="text-xs text-zinc-400">
-                          {selectedSizeAttribute.label}
-                        </p>
-                        <p className="text-xs text-zinc-400">
-                          {selectedSizeAttribute.value}
-                        </p>
+                    {selectedDetailEntries.map((entry) => (
+                      <span
+                        key={`${entry.label}-${entry.value}`}
+                        className="flex justify-between items-center mt-1"
+                      >
+                        <p className="text-xs text-zinc-400">{entry.label}</p>
+                        <p className="text-xs text-zinc-400">{entry.value}</p>
                       </span>
-                    )}
-                    {activeColor && (
-                      <span className="flex justify-between items-center mt-1">
-                        <p className="text-xs text-zinc-400">Color</p>
-                        <span className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full border border-neutral-300 dark:border-neutral-700"
-                            style={{ backgroundColor: activeColor.code }}
-                          />
-                          <p className="text-xs text-zinc-400">
-                            {activeColor.name}
-                          </p>
-                        </span>
-                      </span>
-                    )}
+                    ))}
                   </CardBody>
                 </Card>
               </>

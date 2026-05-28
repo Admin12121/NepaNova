@@ -8,7 +8,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import Price from "./slider";
 import { X } from "lucide-react";
-import { toPascalCase } from "@/lib/utils";
+import { VariantFilterDefinition } from "@/types/product";
 
 interface Item {
   id: string;
@@ -24,7 +24,7 @@ interface Color {
   color: string;
 }
 
-const size: Item[] = [
+const fallbackSizes: Item[] = [
   { id: "size-xs", value: "xs", label: "XS" },
   { id: "size-s", value: "s", label: "S" },
   { id: "size-m", value: "m", label: "M" },
@@ -39,113 +39,130 @@ const availability: Item[] = [
   { id: "radio-13-r3", value: "out", label: "Out of Stock" },
 ];
 
+const optionClassName =
+  "relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input px-2 py-3 text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors text-foreground has-[[data-state=checked]]:text-white has-[[data-disabled]]:cursor-not-allowed bg-white dark:bg-transparent has-[[data-state=checked]]:dark:bg-amber-600 has-[[data-state=checked]]:border-ring ring-transparent has-[[data-state=checked]]:ring-amber-500/50 ring-2 ring-offset-2 ring-offset-transparent has-[[data-state=checked]]:ring-offset-slate-50 has-[[data-state=checked]]:dark:ring-offset-slate-900 has-[[data-state=checked]]:bg-amber-500 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70";
+
 const Sidebar = ({
   state,
   dispatch,
   handleClose,
   materials,
+  attributeFilters = [],
 }: {
   state: any;
   dispatch: any;
   handleClose: any;
   materials: any;
+  attributeFilters?: VariantFilterDefinition[];
 }) => {
+  const colorFilter = attributeFilters.find((item) => item.key === "color");
+  const sizeFilter = attributeFilters.find((item) => item.key === "size");
+  const dynamicFilters = attributeFilters.filter(
+    (item) => item.key !== "color" && item.key !== "size" && item.values.length > 0,
+  );
+  const colorItems: Color[] =
+    colorFilter && colorFilter.values.length > 0
+      ? colorFilter.values.map((item, index) => ({
+          id: `color-${index}`,
+          name: item.label,
+          color: item.color || item.value,
+        }))
+      : materials.color;
+  const sizeItems: Item[] =
+    sizeFilter && sizeFilter.values.length > 0
+      ? sizeFilter.values.map((item, index) => ({
+          id: `size-${index}`,
+          value: item.value,
+          label: item.label,
+        }))
+      : fallbackSizes;
+
+  const toggleFilter = (filterKey: string, value: string) => {
+    dispatch({
+      type: "multiple",
+      value: [
+        { type: filterKey, value },
+        { type: "page", value: 1 },
+      ],
+    });
+  };
+
+  const renderOptionGrid = (
+    filterKey: string,
+    filterItems: Item[],
+    columns = "grid-cols-3",
+  ) => (
+    <fieldset className="space-y-4">
+      <div className={`grid ${columns} p-1 gap-2`}>
+        {filterItems.map((item) => (
+          <label key={item.id} className={optionClassName}>
+            <Checkbox
+              id={item.id}
+              value={item.value}
+              className="sr-only after:absolute after:inset-0"
+              checked={(state[filterKey] || []).includes(item.value)}
+              onClick={() => toggleFilter(filterKey, item.value)}
+              disabled={item?.disabled}
+            />
+            <p className="text-sm font-medium leading-none ">{item.label}</p>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+
   const items = [
-    {
-      id: "1",
-      title: "Colors",
-      content: (
-        <fieldset className="space-y-4">
-          <div className="grid grid-cols-3 p-1 gap-3">
-            {materials.color.map((item: Color, index: number) => (
-              <label
-                key={item.id || `color-${index}`}
-                className="relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input px-2 py-3 text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors text-foreground has-[[data-state=checked]]:text-white has-[[data-disabled]]:cursor-not-allowed bg-white dark:bg-transparent has-[[data-state=checked]]:dark:bg-amber-600 has-[[data-state=checked]]:border-ring ring-transparent has-[[data-state=checked]]:ring-amber-500/50 ring-2 ring-offset-2 ring-offset-transparent has-[[data-state=checked]]:ring-offset-slate-50 has-[[data-state=checked]]:dark:ring-offset-slate-900 has-[[data-state=checked]]:bg-amber-500 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
-              >
-                <Checkbox
-                  id={item.id || `color-${index}`}
-                  value={item.color}
-                  className="sr-only after:absolute after:inset-0"
-                  checked={state.color.includes(item.color)}
-                  onClick={() => dispatch({ type: "color", value: item.color })}
-                />
-                <p className="text-sm font-medium leading-none ">{item.name}</p>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+    ...(colorItems.length > 0
+      ? [
+          {
+            id: "1",
+            title: colorFilter?.label || "Colors",
+            content: (
+              <fieldset className="space-y-4">
+                <div className="grid grid-cols-3 p-1 gap-3">
+                  {colorItems.map((item, index) => (
+                    <label key={item.id || `color-${index}`} className={optionClassName}>
+                      <Checkbox
+                        id={item.id || `color-${index}`}
+                        value={item.color}
+                        className="sr-only after:absolute after:inset-0"
+                        checked={(state.color || []).includes(item.color)}
+                        onClick={() => toggleFilter("color", item.color)}
+                      />
+                      <p className="text-sm font-medium leading-none ">{item.name}</p>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ),
+          },
+        ]
+      : []),
+    ...(sizeItems.length > 0
+      ? [
+          {
+            id: "2",
+            title: sizeFilter?.label || "Size",
+            content: renderOptionGrid("size", sizeItems, "grid-cols-4"),
+          },
+        ]
+      : []),
+    ...dynamicFilters.map((filter, index) => ({
+      id: `attr-${filter.key}-${index}`,
+      title: filter.label,
+      content: renderOptionGrid(
+        `attr:${filter.key}`,
+        filter.values.map((item, valueIndex) => ({
+          id: `${filter.key}-${valueIndex}`,
+          value: item.value,
+          label: item.label,
+        })),
       ),
-    },
-    {
-      id: "2",
-      title: "Size",
-      content: (
-        <fieldset className="space-y-4">
-          <div className="grid grid-cols-4 p-1 gap-2">
-            {size.map((item) => (
-              <label
-                key={item.id}
-                className="relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input px-2 py-3 text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors text-foreground has-[[data-state=checked]]:text-white has-[[data-disabled]]:cursor-not-allowed bg-white dark:bg-transparent has-[[data-state=checked]]:dark:bg-amber-600 has-[[data-state=checked]]:border-ring ring-transparent has-[[data-state=checked]]:ring-amber-500/50 ring-2 ring-offset-2 ring-offset-transparent has-[[data-state=checked]]:ring-offset-slate-50 has-[[data-state=checked]]:dark:ring-offset-slate-900 has-[[data-state=checked]]:bg-amber-500 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
-              >
-                <Checkbox
-                  id={item.id}
-                  value={item.value}
-                  className="sr-only after:absolute after:inset-0"
-                  checked={state.size.includes(item.value)}
-                  onClick={() =>
-                    dispatch({
-                      type: "multiple",
-                      value: [
-                        { type: "size", value: item.value },
-                        { type: "page", value: 1 },
-                      ],
-                    })
-                  }
-                  disabled={item?.disabled}
-                />
-                <p className="text-sm font-medium leading-none ">
-                  {item.label}
-                </p>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ),
-    },
+    })),
     {
       id: "3",
       title: "Availability",
-      content: (
-        <fieldset className="space-y-4">
-          <div className="grid grid-cols-2 p-1 gap-3">
-            {availability.map((item) => (
-              <label
-                key={item.id}
-                className="relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input px-2 py-3 text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors text-foreground has-[[data-state=checked]]:text-white has-[[data-disabled]]:cursor-not-allowed bg-white dark:bg-transparent has-[[data-state=checked]]:dark:bg-amber-600 has-[[data-state=checked]]:border-ring ring-transparent has-[[data-state=checked]]:ring-amber-500/50 ring-2 ring-offset-2 ring-offset-transparent has-[[data-state=checked]]:ring-offset-slate-50 has-[[data-state=checked]]:dark:ring-offset-slate-900 has-[[data-state=checked]]:bg-amber-500 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
-              >
-                <Checkbox
-                  id={item.id}
-                  value={item.value}
-                  className="sr-only after:absolute after:inset-0"
-                  checked={state.availability.includes(item.value)}
-                  onClick={() =>
-                    dispatch({
-                      type: "multiple",
-                      value: [
-                        { type: "availability", value: item.value },
-                        { type: "page", value: 1 },
-                      ],
-                    })
-                  }
-                />
-                <p className="text-sm font-medium leading-none text-nowrap ">
-                  {item.label}
-                </p>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ),
+      content: renderOptionGrid("availability", availability, "grid-cols-2"),
     },
   ];
 

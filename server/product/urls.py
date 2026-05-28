@@ -6,6 +6,7 @@ from .views import *
 router = DefaultRouter()
 router.register(r"categories", CategoryViewSet)
 router.register(r"product-colors", ProductColorViewSet)
+router.register(r"variant-attributes", VariantAttributeDefinitionViewSet)
 router.register(r"products", ProductViewSet)
 router.register(r"product-variants", ProductVariantViewSet)
 router.register(r"product-images", ProductImageViewSet)

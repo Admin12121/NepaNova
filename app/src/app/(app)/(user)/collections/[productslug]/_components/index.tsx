@@ -29,6 +29,7 @@ const FeatureProduct = dynamic(
 interface Image {
   image: string;
   color?: string | null;
+  variant?: number | null;
 }
 
 interface VariantObject {
@@ -37,6 +38,7 @@ interface VariantObject {
   color_code?: string | null;
   color_name?: string | null;
   size: string | null;
+  attributes?: Record<string, string | number | boolean | null>;
   price: string;
   discount: string;
   stock: number;
@@ -122,9 +124,21 @@ const ProductSection = ({ product }: { product: Product }) => {
     code: string;
     name: string;
   } | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
 
   const sortedImages = useMemo(() => {
     if (!product.images) return [];
+    if (selectedVariantId) {
+      const matchingVariant = product.images.filter(
+        (img: any) => img.variant === selectedVariantId,
+      );
+      const restVariant = product.images.filter(
+        (img: any) => img.variant !== selectedVariantId,
+      );
+      if (matchingVariant.length > 0) {
+        return [...matchingVariant, ...restVariant];
+      }
+    }
     if (!selectedColor) return product.images;
     const matching = product.images.filter(
       (img: any) => img.color === selectedColor.code,
@@ -133,7 +147,7 @@ const ProductSection = ({ product }: { product: Product }) => {
       (img: any) => img.color !== selectedColor.code,
     );
     return [...matching, ...rest];
-  }, [product.images, selectedColor]);
+  }, [product.images, selectedColor, selectedVariantId]);
 
   return (
     <section className="min-w-[100dvw] justify-center items-center flex">
@@ -145,6 +159,7 @@ const ProductSection = ({ product }: { product: Product }) => {
                 <ImageContainer
                   images={sortedImages}
                   selectedColorCode={selectedColor?.code}
+                  selectedVariantId={selectedVariantId}
                 />
               )}
             </div>
@@ -155,6 +170,7 @@ const ProductSection = ({ product }: { product: Product }) => {
             products={product}
             selectedColor={selectedColor}
             onColorChange={setSelectedColor}
+            onVariantChange={setSelectedVariantId}
           />
         </div>
       </div>

@@ -16,7 +16,7 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
   size: "Size",
 };
 
-const formatAttributeLabel = (key: string) =>
+export const formatVariantAttributeLabel = (key: string) =>
   ATTRIBUTE_LABELS[key] ||
   key
     .replace(/[_-]+/g, " ")
@@ -34,6 +34,49 @@ const formatAttributeValue = (value: AttributeValue) => {
   }
 
   return String(value);
+};
+
+export const normalizeAttributeKey = (key: string) =>
+  key.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+export const getVariantAttributes = (variant?: VariantAttributeLike | null) => {
+  if (!variant) {
+    return {};
+  }
+
+  const attributes: VariantAttributeMap =
+    variant.attributes &&
+    typeof variant.attributes === "object" &&
+    !Array.isArray(variant.attributes)
+      ? { ...variant.attributes }
+      : {};
+
+  if (variant.size !== null && variant.size !== undefined && variant.size !== "") {
+    attributes.size = variant.size;
+  }
+  if (variant.color_code) {
+    attributes.color = variant.color_code;
+  }
+  if (variant.color_name) {
+    attributes.color_name = variant.color_name;
+  }
+
+  return attributes;
+};
+
+export const getComparableVariantAttributes = (
+  variant?: VariantAttributeLike | null,
+) => {
+  const attributes = getVariantAttributes(variant);
+  return Object.fromEntries(
+    Object.entries(attributes).filter(
+      ([key, value]) =>
+        key !== "color_name" &&
+        value !== null &&
+        value !== undefined &&
+        value !== "",
+    ),
+  );
 };
 
 const pushUniqueEntry = (
@@ -57,12 +100,7 @@ export const getVariantAttributeEntries = (
   }
 
   const entries: Array<{ label: string; value: string }> = [];
-  const attributes =
-    variant.attributes &&
-    typeof variant.attributes === "object" &&
-    !Array.isArray(variant.attributes)
-      ? variant.attributes
-      : {};
+  const attributes = getVariantAttributes(variant);
 
   Object.entries(attributes).forEach(([key, value]) => {
     if (SKIPPED_ATTRIBUTE_KEYS.has(key)) {
@@ -75,7 +113,7 @@ export const getVariantAttributeEntries = (
 
     pushUniqueEntry(
       entries,
-      formatAttributeLabel(key),
+      formatVariantAttributeLabel(key),
       formatAttributeValue(value),
     );
   });
@@ -96,3 +134,6 @@ export const formatVariantSummary = (
   getVariantAttributeEntries(variant, options)
     .map(({ label, value }) => `${label}: ${value}`)
     .join(" / ");
+
+export const getVariantOptionLabel = (variant?: VariantAttributeLike | null) =>
+  formatVariantSummary(variant, { includeColor: true }) || "Variant";

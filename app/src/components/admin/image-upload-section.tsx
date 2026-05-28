@@ -19,6 +19,12 @@ interface AvailableColor {
   name: string;
 }
 
+interface AvailableVariant {
+  id: string;
+  label: string;
+  colorCode?: string | null;
+}
+
 interface ImageUploadSectionProps {
   images: string[];
   productImages: File[];
@@ -34,9 +40,13 @@ interface ImageUploadSectionProps {
   onRemoveAll: () => void;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   availableColors?: AvailableColor[];
+  availableVariants?: AvailableVariant[];
   imageColors?: Record<number, string>;
+  imageVariants?: Record<number, string>;
   onSetImageColor?: (index: number, colorCode: string) => void;
   onClearImageColor?: (index: number) => void;
+  onSetImageVariant?: (index: number, variantId: string) => void;
+  onClearImageVariant?: (index: number) => void;
 }
 
 function ColorTag({
@@ -102,6 +112,44 @@ function ColorTag({
   );
 }
 
+function VariantTag({
+  index,
+  availableVariants,
+  imageVariants,
+  onSetImageVariant,
+  onClearImageVariant,
+}: {
+  index: number;
+  availableVariants: AvailableVariant[];
+  imageVariants: Record<number, string>;
+  onSetImageVariant: (index: number, variantId: string) => void;
+  onClearImageVariant: (index: number) => void;
+}) {
+  const selectedVariant = imageVariants[index] || "";
+
+  return (
+    <select
+      value={selectedVariant}
+      onChange={(event) => {
+        if (event.target.value) {
+          onSetImageVariant(index, event.target.value);
+        } else {
+          onClearImageVariant(index);
+        }
+      }}
+      className="mt-2 h-8 w-full rounded-md border border-input bg-white px-2 text-xs dark:bg-neutral-900"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <option value="">Link image to variant</option>
+      {availableVariants.map((variant) => (
+        <option key={variant.id} value={variant.id}>
+          {variant.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function ImageUploadSection({
   images,
   isDragging,
@@ -116,12 +164,18 @@ export function ImageUploadSection({
   onRemoveAll,
   onInputChange,
   availableColors = [],
+  availableVariants = [],
   imageColors = {},
+  imageVariants = {},
   onSetImageColor,
   onClearImageColor,
+  onSetImageVariant,
+  onClearImageVariant,
 }: ImageUploadSectionProps) {
   const showColorTags =
     availableColors.length > 0 && onSetImageColor && onClearImageColor;
+  const showVariantTags =
+    availableVariants.length > 0 && onSetImageVariant && onClearImageVariant;
 
   return (
     <div className="flex gap-5 flex-wrap">
@@ -168,6 +222,15 @@ export function ImageUploadSection({
               imageColors={imageColors}
               onSetImageColor={onSetImageColor}
               onClearImageColor={onClearImageColor}
+            />
+          )}
+          {images[0] && showVariantTags && (
+            <VariantTag
+              index={0}
+              availableVariants={availableVariants}
+              imageVariants={imageVariants}
+              onSetImageVariant={onSetImageVariant}
+              onClearImageVariant={onClearImageVariant}
             />
           )}
         </div>
@@ -228,6 +291,15 @@ export function ImageUploadSection({
                   imageColors={imageColors}
                   onSetImageColor={onSetImageColor}
                   onClearImageColor={onClearImageColor}
+                />
+              )}
+              {images[index] && showVariantTags && (
+                <VariantTag
+                  index={index}
+                  availableVariants={availableVariants}
+                  imageVariants={imageVariants}
+                  onSetImageVariant={onSetImageVariant}
+                  onClearImageVariant={onClearImageVariant}
                 />
               )}
             </div>

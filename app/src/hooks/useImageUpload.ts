@@ -5,6 +5,7 @@ export const useImageUpload = (maxImages = 5) => {
   const [images, setImages] = useState<string[]>([]);
   const [productImages, setProductImages] = useState<File[]>([]);
   const [imageColors, setImageColors] = useState<Record<number, string>>({});
+  const [imageVariants, setImageVariants] = useState<Record<number, string>>({});
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
@@ -112,6 +113,18 @@ export const useImageUpload = (maxImages = 5) => {
     });
   };
 
+  const setImageVariant = (index: number, variant: string) => {
+    setImageVariants((prev) => ({ ...prev, [index]: variant }));
+  };
+
+  const clearImageVariant = (index: number) => {
+    setImageVariants((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setProductImages((prev) => prev.filter((_, i) => i !== index));
@@ -129,18 +142,32 @@ export const useImageUpload = (maxImages = 5) => {
       });
       return next;
     });
+    setImageVariants((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const k = Number(key);
+        if (k < index) {
+          next[k] = value;
+        } else if (k > index) {
+          next[k - 1] = value;
+        }
+      });
+      return next;
+    });
   };
 
   const removeAllImages = () => {
     setImages([]);
     setProductImages([]);
     setImageColors({});
+    setImageVariants({});
   };
 
   return {
     images,
     productImages,
     imageColors,
+    imageVariants,
     isDragging,
     draggingIndex,
     loadingIndex,
@@ -154,5 +181,7 @@ export const useImageUpload = (maxImages = 5) => {
     removeAllImages,
     setImageColor,
     clearImageColor,
+    setImageVariant,
+    clearImageVariant,
   };
 };

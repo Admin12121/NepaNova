@@ -15,6 +15,8 @@ import {
   useProductsViewQuery,
   useProductsUpdateMutation,
   useVariantDeleteMutation,
+  useAddVariantAttributeMutation,
+  useVariantAttributesQuery,
 } from "@/lib/store/Service/api";
 import { cn, delay } from "@/lib/utils";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -45,6 +47,10 @@ import { ColorPickerField } from "@/components/admin/color-picker-field";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import DeleteProduct from "./delete-product";
 import Uploader from "./image-uploader";
+import {
+  getVariantOptionLabel,
+} from "@/lib/variant-attributes";
+import { VariantAttributeDefinition } from "@/types/product";
 
 import {
   Command,
@@ -82,6 +88,10 @@ const schema = z
         size: z.string().optional().nullable(),
         color_code: z.string().optional().nullable(),
         color_name: z.string().optional().nullable(),
+        attributes: z
+          .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+          .optional()
+          .nullable(),
         price: z.number().positive("Price must be positive"),
         stock: z.number().int().nonnegative("Stock must be non-negative"),
         discount: z.number().min(0).max(100).optional().nullable(),
@@ -124,11 +134,12 @@ interface FormValues {
   basePrice?: number | null;
   stock?: number | null;
   discount?: number | null;
-  variants?: Array<{
+    variants?: Array<{
     id?: string;
     size?: string;
     color_code?: string;
     color_name?: string;
+    attributes?: Record<string, string | number | boolean | null>;
     price: number;
     stock: number;
     discount?: number;
@@ -139,6 +150,7 @@ interface ImageData {
   id: string | null;
   src: string;
   color?: string | null;
+  variant?: number | null;
 }
 
 interface AvailableColor {
@@ -160,8 +172,12 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
     { productslug, token: accessToken },
     { skip: !productslug },
   );
+  const { data: variantAttributes = [] } = useVariantAttributesQuery({
+    token: accessToken,
+  });
   const [updateProduct] = useProductsUpdateMutation();
   const [deleteVariant] = useVariantDeleteMutation();
+  const [addVariantAttribute] = useAddVariantAttributeMutation();
   const getcategory = useMemo(() => (data as GetCategory[]) || [], [data]);
   const {
     register,
@@ -313,6 +329,16 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
             `variants[${index}][color_name]`,
             variant.color_name || "",
           );
+          if (variant.attributes) {
+            Object.entries(variant.attributes).forEach(([key, value]) => {
+              if (value !== null && value !== undefined && value !== "") {
+                formData.append(
+                  `variants[${index}][attributes][${key}]`,
+                  String(value),
+                );
+              }
+            });
+          }
           formData.append(
             `variants[${index}][price]`,
             String(variant.price ?? 0),
@@ -420,6 +446,14 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
     });
     return Array.from(colorMap.values());
   }, [variantsColorKey]);
+  const availableVariants = useMemo(() => {
+    if (!watchedVariants || !Array.isArray(watchedVariants)) return [];
+    return watchedVariants.map((variant: any, index: number) => ({
+      id: String(variant?.id || ""),
+      label: getVariantOptionLabel(variant) || `Variant ${index + 1}`,
+      colorCode: variant?.color_code || null,
+    })).filter((variant) => variant.id);
+  }, [watchedVariants]);
 
   useEffect(() => {
     if (productData) {
@@ -428,6 +462,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
           id: img.id,
           src: img.image,
           color: img.color || null,
+          variant: img.variant || null,
         })),
       );
       if (Array.isArray(productData.variants)) {
@@ -439,6 +474,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
             size: variant.size,
             color_code: variant.color_code,
             color_name: variant.color_name,
+            attributes: variant.attributes || {},
             price: parseFloat(variant.price),
             stock: variant.stock,
             discount: parseFloat(variant.discount),
@@ -459,6 +495,72 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
 
   const [open, setOpen] = useState<boolean>(false);
   const [cat, setCat] = useState<boolean>(false);
+  const [isAddingOption, setIsAddingOption] = useState(false);
+  const [newOptionLabel, setNewOptionLabel] = useState("");
+  const [newOptionType, setNewOptionType] = useState<"text" | "number" | "select">(
+    "text",
+  );
+  const normalizedAttributes: VariantAttributeDefinition[] = useMemo(() => {
+    const fallback: VariantAttributeDefinition[] = [
+      {
+        id: -1,
+        key: "color",
+        label: "Color",
+        type: "color",
+        required: false,
+        filterable: true,
+        is_system: true,
+        is_locked: true,
+        position: 10,
+      },
+      {
+        id: -2,
+        key: "size",
+        label: "Size",
+        type: "select",
+        required: false,
+        filterable: true,
+        is_system: true,
+        is_locked: true,
+        position: 20,
+      },
+    ];
+    const byKey = new Map<string, VariantAttributeDefinition>();
+    [...fallback, ...(variantAttributes as VariantAttributeDefinition[])].forEach(
+      (attribute) => byKey.set(attribute.key, attribute),
+    );
+    return Array.from(byKey.values()).sort(
+      (a, b) => a.position - b.position || a.label.localeCompare(b.label),
+    );
+  }, [variantAttributes]);
+  const colorAttribute = normalizedAttributes.find((item) => item.key === "color");
+  const sizeAttribute = normalizedAttributes.find((item) => item.key === "size");
+  const customAttributes = normalizedAttributes.filter(
+    (item) => item.key !== "color" && item.key !== "size",
+  );
+
+  const handleAddVariantAttribute = useCallback(async () => {
+    const label = newOptionLabel.trim();
+    if (!label) return;
+    const key = label.toLowerCase().replace(/[\s-]+/g, "_");
+    try {
+      await addVariantAttribute({
+        actualData: {
+          key,
+          label,
+          type: newOptionType,
+          filterable: true,
+        },
+        token: accessToken,
+      }).unwrap();
+      setNewOptionLabel("");
+      setNewOptionType("text");
+      setIsAddingOption(false);
+      toast.success("Variant option added");
+    } catch (error) {
+      toast.error("Could not add variant option");
+    }
+  }, [accessToken, addVariantAttribute, newOptionLabel, newOptionType]);
 
   const onFormError = useCallback((formErrors: any) => {
     console.error("Form validation errors:", formErrors);
@@ -596,6 +698,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                     product="h-80 w-full max-lg:h-full max-lg:w-full object-contain"
                     className=" w-4 h-4 absolute right-1 top-1  hidden group-hover:flex transition duration-500"
                     availableColors={availableColors}
+                    availableVariants={availableVariants}
                   />
                 ) : (
                   "Click or Drop here"
@@ -625,6 +728,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                         token={accessToken}
                         className=" w-4 h-4 absolute right-1 top-1  hidden group-hover:flex transition duration-500"
                         availableColors={availableColors}
+                        availableVariants={availableVariants}
                       />
                     ) : (
                       "+"
@@ -682,6 +786,61 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
               </span>
             ) : (
               <span className="flex gap-5 flex-col">
+                <div className="flex flex-col gap-2 rounded-md border border-dashed border-neutral-200 p-3 dark:border-neutral-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Variant options</p>
+                      <p className="text-xs text-neutral-500">
+                        Color and size are locked defaults. Add custom options
+                        like flavor, weight, pack, or material.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddingOption((value) => !value)}
+                    >
+                      Add Option
+                    </Button>
+                  </div>
+                  {isAddingOption && (
+                    <div className="grid gap-2 md:grid-cols-[1fr_160px_auto]">
+                      <GlobalInput
+                        label="Option Name"
+                        placeholder="e.g., Flavor"
+                        className="bg-white dark:bg-neutral-900 w-full"
+                        value={newOptionLabel}
+                        onChange={(event: any) =>
+                          setNewOptionLabel(event.target.value)
+                        }
+                      />
+                      <label className="flex flex-col gap-2 text-sm">
+                        Type
+                        <select
+                          value={newOptionType}
+                          onChange={(event) =>
+                            setNewOptionType(
+                              event.target.value as "text" | "number" | "select",
+                            )
+                          }
+                          className="h-10 rounded-md border border-input bg-white px-3 text-sm dark:bg-neutral-900"
+                        >
+                          <option value="text">Text</option>
+                          <option value="select">Select</option>
+                          <option value="number">Number</option>
+                        </select>
+                      </label>
+                      <Button
+                        type="button"
+                        className="self-end"
+                        onClick={handleAddVariantAttribute}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {fields.map((variant, index) => {
                   const watchedColor = watch(`variants.${index}.color_code`);
                   const watchedColorName = watch(
@@ -690,10 +849,11 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                   return (
                     <div key={variant.id} className="flex gap-5 flex-col">
                       <div className="flex gap-5 flex-col md:flex-row">
-                        <div className="w-full md:flex-1">
+                        {sizeAttribute && (
+                          <div className="w-full md:flex-1">
                           <GlobalInput
-                            label="Size (optional)"
-                            placeholder="e.g., M, L, 15cm"
+                            label={`${sizeAttribute.label} (optional)`}
+                            placeholder="e.g., 250g, M, Large"
                             className="bg-white dark:bg-neutral-900 w-full"
                             error={errors.variants?.[index]?.size?.message}
                             {...register(`variants.${index}.size`, {
@@ -701,10 +861,12 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                                 handleBlur(`variants[${index}].size`),
                             })}
                           />
-                        </div>
-                        <div className="w-full md:flex-1">
+                          </div>
+                        )}
+                        {colorAttribute && (
+                          <div className="w-full md:flex-1">
                           <ColorPickerField
-                            label="Color (optional)"
+                            label={`${colorAttribute.label} (optional)`}
                             value={
                               (typeof watchedColor === "string" &&
                                 watchedColor) ||
@@ -724,13 +886,44 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                                 `variants.${index}.color_name`,
                                 colorName || "",
                               );
+                              setValue(
+                                `variants.${index}.attributes.color` as any,
+                                colorCode || "",
+                              );
+                              setValue(
+                                `variants.${index}.attributes.color_name` as any,
+                                colorName || "",
+                              );
                             }}
                             error={
                               errors.variants?.[index]?.color_code?.message
                             }
                           />
-                        </div>
+                          </div>
+                        )}
                       </div>
+                      {customAttributes.length > 0 && (
+                        <div className="grid gap-5 md:grid-cols-2">
+                          {customAttributes.map((attribute) => (
+                            <GlobalInput
+                              key={attribute.key}
+                              label={`${attribute.label} (optional)`}
+                              placeholder={`Enter ${attribute.label.toLowerCase()}`}
+                              className="bg-white dark:bg-neutral-900 w-full"
+                              type={attribute.type === "number" ? "number" : "text"}
+                              {...register(
+                                `variants.${index}.attributes.${attribute.key}` as any,
+                                {
+                                  onBlur: () =>
+                                    handleBlur(
+                                      `variants[${index}].attributes.${attribute.key}`,
+                                    ),
+                                },
+                              )}
+                            />
+                          ))}
+                        </div>
+                      )}
                       <div className="flex gap-5 flex-col md:flex-row">
                         <GlobalInput
                           label="Price"
@@ -818,6 +1011,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
                       size: "",
                       color_code: "",
                       color_name: "",
+                      attributes: {},
                       price: 0,
                       stock: 0,
                       discount: 0,

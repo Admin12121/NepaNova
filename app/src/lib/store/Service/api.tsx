@@ -84,6 +84,8 @@ export const userAuthapi = createApi({
     "ProductDetail",
     "ProductImages",
     "ProductVariants",
+    "VariantAttributes",
+    "VariantFilters",
     "Categories",
     "Orders",
     "OrderDetail",
@@ -321,6 +323,51 @@ export const userAuthapi = createApi({
       ],
     }),
 
+    variantAttributes: builder.query({
+      query: (arg?: { token?: string }) => ({
+        url: "api/products/variant-attributes/",
+        method: "GET",
+        headers: createHeaders(arg?.token),
+      }),
+      providesTags: [{ type: "VariantAttributes", id: "LIST" }],
+      keepUnusedDataFor: 10 * 60,
+    }),
+
+    addVariantAttribute: builder.mutation({
+      query: ({ actualData, token }) => ({
+        url: "api/products/variant-attributes/",
+        method: "POST",
+        body: actualData,
+        headers: createHeaders(token),
+      }),
+      invalidatesTags: [
+        { type: "VariantAttributes", id: "LIST" },
+        { type: "VariantFilters", id: "LIST" },
+      ],
+    }),
+
+    deleteVariantAttribute: builder.mutation({
+      query: ({ id, token }) => ({
+        url: `api/products/variant-attributes/${id}/`,
+        method: "DELETE",
+        headers: createHeaders(token),
+      }),
+      invalidatesTags: [
+        { type: "VariantAttributes", id: "LIST" },
+        { type: "VariantFilters", id: "LIST" },
+      ],
+    }),
+
+    variantFilters: builder.query({
+      query: () => ({
+        url: "api/products/products/variant-filters/",
+        method: "GET",
+        headers: createHeaders(),
+      }),
+      providesTags: [{ type: "VariantFilters", id: "LIST" }],
+      keepUnusedDataFor: 5 * 60,
+    }),
+
     productsView: builder.query({
       query: ({
         productslug,
@@ -335,11 +382,12 @@ export const userAuthapi = createApi({
         size,
         metal,
         stock,
+        attributeFilters,
         filter,
         token,
         page_size,
       }) => {
-        const queryParams = buildQueryParams({
+        const baseQueryParams = buildQueryParams({
           page,
           page_size,
           productslug,
@@ -355,6 +403,24 @@ export const userAuthapi = createApi({
           stock,
           filter,
         });
+        const attributeParams =
+          attributeFilters && typeof attributeFilters === "object"
+            ? Object.entries(attributeFilters)
+                .flatMap(([key, values]) =>
+                  Array.isArray(values)
+                    ? values.map(
+                        (value) =>
+                          `attr[${encodeURIComponent(key)}]=${encodeURIComponent(
+                            String(value),
+                          )}`,
+                      )
+                    : [],
+                )
+                .join("&")
+            : "";
+        const queryParams = attributeParams
+          ? `${baseQueryParams || "?"}${baseQueryParams ? "&" : ""}${attributeParams}`
+          : baseQueryParams;
         return {
           url: `api/products/products/${queryParams}`,
           method: "GET",
@@ -1098,6 +1164,10 @@ export const {
   useDeleteproductImageMutation,
   useVariantUpdateMutation,
   useVariantDeleteMutation,
+  useVariantAttributesQuery,
+  useAddVariantAttributeMutation,
+  useDeleteVariantAttributeMutation,
+  useVariantFiltersQuery,
   useProductsViewQuery,
   useProductsByIdsQuery,
   useCheckout_productsQuery,

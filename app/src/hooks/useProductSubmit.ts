@@ -7,6 +7,7 @@ interface Variant {
   size?: string | null;
   color_code?: string | null;
   color_name?: string | null;
+  attributes?: Record<string, string | number | boolean | null> | null;
   price: number;
   stock: number;
   discount?: number | null;
@@ -27,6 +28,7 @@ export const useProductSubmit = (accessToken: string) => {
     resetForm: () => void,
     clearImages: () => void,
     imageColors: Record<number, string> = {},
+    imageVariants: Record<number, string> = {},
   ) => {
     const cleanedData: CleanedProductData = { ...data };
 
@@ -69,6 +71,16 @@ export const useProductSubmit = (accessToken: string) => {
         if (variant.color_name) {
           formData.append(`variants[${index}][color_name]`, variant.color_name);
         }
+        if (variant.attributes) {
+          Object.entries(variant.attributes).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== "") {
+              formData.append(
+                `variants[${index}][attributes][${key}]`,
+                String(value),
+              );
+            }
+          });
+        }
         formData.append(`variants[${index}][price]`, variant.price.toString());
         formData.append(`variants[${index}][stock]`, variant.stock.toString());
         if (variant.discount !== undefined && variant.discount !== null) {
@@ -86,6 +98,9 @@ export const useProductSubmit = (accessToken: string) => {
         formData.append(`images[${index}]`, image);
         if (imageColors[index]) {
           formData.append(`imageColor[${index}]`, imageColors[index]);
+        }
+        if (imageVariants[index]) {
+          formData.append(`imageVariant[${index}]`, imageVariants[index]);
         }
       });
 

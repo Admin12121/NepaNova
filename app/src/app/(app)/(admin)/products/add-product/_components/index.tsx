@@ -18,8 +18,11 @@ import { CategorySection } from "@/components/admin/category-section";
 import {
   useAddCategoryMutation,
   useGetCategoryQuery,
+  useAddVariantAttributeMutation,
+  useVariantAttributesQuery,
 } from "@/lib/store/Service/api";
 import { CategoryOption } from "@/types/product-form";
+import { getVariantOptionLabel } from "@/lib/variant-attributes";
 
 const AddProduct = () => {
   const { accessToken = "" } = useAuthUser();
@@ -39,6 +42,7 @@ const AddProduct = () => {
     images,
     productImages,
     imageColors,
+    imageVariants,
     isDragging,
     draggingIndex,
     loadingIndex,
@@ -52,7 +56,13 @@ const AddProduct = () => {
     removeAllImages,
     setImageColor,
     clearImageColor,
+    setImageVariant,
+    clearImageVariant,
   } = useImageUpload();
+  const { data: variantAttributes = [] } = useVariantAttributesQuery({
+    token: accessToken,
+  });
+  const [addVariantAttribute] = useAddVariantAttributeMutation();
 
   // Extract unique colors from the current variants for image tagging
   const watchedVariants = form.watch("variants");
@@ -72,6 +82,14 @@ const AddProduct = () => {
     });
     return Array.from(colorMap.values());
   }, [variantsColorKey]);
+  const availableVariants = useMemo(() => {
+    if (!watchedVariants || !Array.isArray(watchedVariants)) return [];
+    return watchedVariants.map((variant: any, index: number) => ({
+      id: `index:${index}`,
+      label: getVariantOptionLabel(variant) || `Variant ${index + 1}`,
+      colorCode: variant?.color_code || null,
+    }));
+  }, [watchedVariants]);
 
   const { onSubmit: handleProductSubmit } = useProductSubmit(accessToken);
 
@@ -118,6 +136,25 @@ const AddProduct = () => {
     [addCategory, accessToken, refetchCategories],
   );
 
+  const handleAddVariantAttribute = useCallback(
+    async (attribute: {
+      key: string;
+      label: string;
+      type: "text" | "number" | "select";
+    }) => {
+      await addVariantAttribute({
+        actualData: {
+          key: attribute.key,
+          label: attribute.label,
+          type: attribute.type,
+          filterable: true,
+        },
+        token: accessToken,
+      }).unwrap();
+    },
+    [addVariantAttribute, accessToken],
+  );
+
   const onSubmit = useCallback(
     async (data: any) => {
       await handleProductSubmit(
@@ -127,6 +164,7 @@ const AddProduct = () => {
         () => form.reset(),
         removeAllImages,
         imageColors,
+        imageVariants,
       );
     },
     [
@@ -136,6 +174,7 @@ const AddProduct = () => {
       form,
       removeAllImages,
       imageColors,
+      imageVariants,
     ],
   );
 
@@ -228,9 +267,13 @@ const AddProduct = () => {
               onRemoveAll={removeAllImages}
               onInputChange={handleInputChange}
               availableColors={availableColors}
+              availableVariants={availableVariants}
               imageColors={imageColors}
+              imageVariants={imageVariants}
               onSetImageColor={setImageColor}
               onClearImageColor={clearImageColor}
+              onSetImageVariant={setImageVariant}
+              onClearImageVariant={clearImageVariant}
             />
           </CardContent>
         </Card>
@@ -251,6 +294,8 @@ const AddProduct = () => {
               onBlur={handleBlur}
               setValue={form.setValue}
               watch={watchVariants}
+              variantAttributes={variantAttributes}
+              onAddVariantAttribute={handleAddVariantAttribute}
             />
           </CardContent>
         </Card>

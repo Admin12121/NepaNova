@@ -57,12 +57,36 @@ export interface Image {
   id?: number;
   image: string;
   color?: string | null;
+  variant?: number | null;
 }
 
 export interface ProductColor {
   color_code: string;
   color_name: string;
   image?: string | null;
+}
+
+export interface VariantAttributeDefinition {
+  id: number;
+  key: string;
+  label: string;
+  type: "text" | "number" | "select" | "color";
+  required: boolean;
+  filterable: boolean;
+  is_system: boolean;
+  is_locked: boolean;
+  position: number;
+}
+
+export interface VariantFilterValue {
+  label: string;
+  value: string;
+  color?: string;
+}
+
+export interface VariantFilterDefinition
+  extends Omit<VariantAttributeDefinition, "id" | "required" | "position"> {
+  values: VariantFilterValue[];
 }
 
 export interface VariantObject {

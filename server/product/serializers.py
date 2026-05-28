@@ -22,6 +22,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = "__all__"
         extra_kwargs = {
             "color": {"required": False, "allow_null": True},
+            "variant": {"required": False, "allow_null": True},
         }
 
 
@@ -41,13 +42,39 @@ class ProductColorSerializer(serializers.ModelSerializer):
         return None
 
 
+class VariantAttributeDefinitionSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(source="input_type")
+
+    class Meta:
+        model = VariantAttributeDefinition
+        fields = [
+            "id",
+            "key",
+            "label",
+            "type",
+            "required",
+            "filterable",
+            "is_system",
+            "is_locked",
+            "position",
+        ]
+        read_only_fields = ["is_system", "is_locked"]
+
+    def validate_key(self, value):
+        normalized = value.strip().lower().replace(" ", "_").replace("-", "_")
+        if not normalized:
+            raise serializers.ValidationError("Attribute key is required.")
+        return normalized
+
+
 class ImageDataSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     color = serializers.SerializerMethodField()
+    variant = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductImage
-        fields = ["id", "image", "color"]
+        fields = ["id", "image", "color", "variant"]
 
     def get_image(self, obj):
         request = self.context.get("request")
@@ -57,6 +84,9 @@ class ImageDataSerializer(serializers.ModelSerializer):
         if obj.color:
             return obj.color.color_code
         return None
+
+    def get_variant(self, obj):
+        return obj.variant_id
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):

@@ -35,6 +35,10 @@ export const productFormSchema = z
           .string()
           .optional()
           .nullable(),
+        attributes: z
+          .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+          .optional()
+          .nullable(),
         price: z
           .number({
             required_error: "Price is required",
@@ -52,8 +56,15 @@ export const productFormSchema = z
           .max(100, "Discount must be at most 100")
           .optional()
           .nullable(),
-      }).refine((data) => data.size || data.color_code, {
-        message: "Either size or color must be provided for each variant",
+      }).refine((data) => {
+        const hasAttributes =
+          data.attributes &&
+          Object.values(data.attributes).some(
+            (value) => value !== null && value !== undefined && value !== "",
+          );
+        return data.size || data.color_code || hasAttributes;
+      }, {
+        message: "Add at least one variant option",
         path: ["size"],
       })
     ),

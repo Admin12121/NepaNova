@@ -10,7 +10,9 @@ export const useProductForm = () => {
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       discount: 0,
-      variants: [{ discount: 0, size: "", color_code: "", color_name: "" }],
+      variants: [
+        { discount: 0, size: "", color_code: "", color_name: "", attributes: {} },
+      ],
     },
   });
 
@@ -35,7 +37,15 @@ export const useProductForm = () => {
     setIsMultiVariant(isMulti);
     if (isMulti) {
       if (fields.length === 0) {
-        append({ size: "", color_code: "", color_name: "", price: 0, stock: 0, discount: 1 });
+        append({
+          size: "",
+          color_code: "",
+          color_name: "",
+          attributes: {},
+          price: 0,
+          stock: 0,
+          discount: 1,
+        });
       }
     } else {
       remove(Array.from({ length: fields.length }, (_, i) => i));

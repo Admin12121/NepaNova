@@ -12,26 +12,31 @@ import { cn } from "@/lib/utils";
 interface ImageItem {
   image: string;
   color?: string | null;
+  variant?: number | null;
 }
 
 const DemoSlider = ({
   images,
   selectedColorCode,
+  selectedVariantId,
 }: {
   images: ImageItem[];
   selectedColorCode?: string | null;
+  selectedVariantId?: number | null;
 }) => {
   const swiperRef = useRef<SwiperType | null>(null);
 
   useEffect(() => {
     if (!swiperRef.current || !selectedColorCode) return;
     const matchIndex = images.findIndex(
-      (img) => img.color === selectedColorCode,
+      (img) =>
+        (selectedVariantId && img.variant === selectedVariantId) ||
+        img.color === selectedColorCode,
     );
     if (matchIndex >= 0) {
       swiperRef.current.slideToLoop(matchIndex, 400);
     }
-  }, [selectedColorCode, images]);
+  }, [selectedColorCode, selectedVariantId, images]);
 
   return (
     <section className="w-full flex items-center justify-center">
@@ -75,9 +80,11 @@ const DemoSlider = ({
 export default function ImageContainer({
   images,
   selectedColorCode,
+  selectedVariantId,
 }: {
   images: ImageItem[];
   selectedColorCode?: string | null;
+  selectedVariantId?: number | null;
 }) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -110,7 +117,13 @@ export default function ImageContainer({
   }, [selectedColorCode, isMobile]);
 
   if (isMobile) {
-    return <DemoSlider images={images} selectedColorCode={selectedColorCode} />;
+    return (
+      <DemoSlider
+        images={images}
+        selectedColorCode={selectedColorCode}
+        selectedVariantId={selectedVariantId}
+      />
+    );
   }
 
   let firstMatchAssigned = false;
@@ -124,7 +137,8 @@ export default function ImageContainer({
           : "";
 
         const isMatch =
-          selectedColorCode != null && img.color === selectedColorCode;
+          (selectedVariantId != null && img.variant === selectedVariantId) ||
+          (selectedColorCode != null && img.color === selectedColorCode);
 
         // Assign ref to first matching image for scroll-into-view
         let refProp: React.Ref<HTMLSpanElement> | undefined;

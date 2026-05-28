@@ -163,8 +163,8 @@ RESEND_FROM_EMAIL = config(
 ) or "NepaNova Impact <onboarding@resend.dev>"
 DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL
 
-SEED_ADMIN_EMAIL = config("SEED_ADMIN_EMAIL", default="")
-SEED_ADMIN_PASSWORD = config("SEED_ADMIN_PASSWORD", default="")
+SEED_ADMIN_EMAIL = config("SEED_ADMIN_EMAIL", default="admin@gmail.com")
+SEED_ADMIN_PASSWORD = config("SEED_ADMIN_PASSWORD", default="admin@#12")
 SEED_ADMIN_FIRST_NAME = config("SEED_ADMIN_FIRST_NAME", default="Admin")
 SEED_ADMIN_LAST_NAME = config("SEED_ADMIN_LAST_NAME", default="User")
 SEED_ADMIN_USERNAME = config("SEED_ADMIN_USERNAME", default="@admin")

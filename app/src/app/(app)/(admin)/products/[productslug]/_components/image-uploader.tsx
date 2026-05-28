@@ -22,18 +22,26 @@ interface AvailableColor {
   name: string;
 }
 
+interface AvailableVariant {
+  id: string;
+  label: string;
+  colorCode?: string | null;
+}
+
 const Uploader = ({
   token,
   product,
   className,
   images,
   availableColors = [],
+  availableVariants = [],
 }: {
   token?: string;
   product?: string;
   className?: string;
   images?: any;
   availableColors?: AvailableColor[];
+  availableVariants?: AvailableVariant[];
 }) => {
   const [productImage] = useProductImageMutation();
   const [deleteProductImage] = useDeleteproductImageMutation();
@@ -42,7 +50,11 @@ const Uploader = ({
   const [selectedColor, setSelectedColor] = useState<string | null>(
     images?.color || null,
   );
+  const [selectedVariant, setSelectedVariant] = useState<string>(
+    images?.variant ? String(images.variant) : "",
+  );
   const [colorChanged, setColorChanged] = useState(false);
+  const [variantChanged, setVariantChanged] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync with incoming image color data
@@ -50,7 +62,8 @@ const Uploader = ({
     if (images?.color) {
       setSelectedColor(images.color);
     }
-  }, [images?.color]);
+    setSelectedVariant(images?.variant ? String(images.variant) : "");
+  }, [images?.color, images?.variant]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,9 +87,9 @@ const Uploader = ({
   };
 
   const handleUpdateImage = async () => {
-    if (!newImage && !colorChanged) {
+    if (!newImage && !colorChanged && !variantChanged) {
       toast.error(
-        "Please upload a new image or change the color before updating.",
+        "Please upload a new image or change the image assignment before updating.",
       );
       return;
     }
@@ -92,6 +105,9 @@ const Uploader = ({
         formData.append("color", "");
       }
     }
+    if (variantChanged) {
+      formData.append("variant", selectedVariant);
+    }
 
     try {
       const toastId = toast.loading("Updating Image...", {
@@ -101,6 +117,7 @@ const Uploader = ({
       const res = await productImage({ formData, token, id: images.id });
       if (res.data) {
         setColorChanged(false);
+        setVariantChanged(false);
         toast.success("Image updated successfully!", {
           id: toastId,
           position: "top-center",
@@ -146,6 +163,9 @@ const Uploader = ({
   const selectedColorObj = availableColors.find(
     (c) => c.code === selectedColor,
   );
+  const selectedVariantObj = availableVariants.find(
+    (variant) => variant.id === selectedVariant,
+  );
 
   const isLightColor = (hexColor: string): boolean => {
     const hex = hexColor.replace("#", "");
@@ -178,6 +198,11 @@ const Uploader = ({
               style={{ backgroundColor: selectedColor }}
               title={selectedColorObj?.name || selectedColor}
             />
+          )}
+          {selectedVariantObj && (
+            <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+              {selectedVariantObj.label}
+            </span>
           )}
         </span>
       </DialogTrigger>
@@ -222,6 +247,29 @@ const Uploader = ({
           </div>
 
           {/* Color assignment section */}
+          {availableVariants.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Link Variant
+              </p>
+              <select
+                value={selectedVariant}
+                onChange={(event) => {
+                  setSelectedVariant(event.target.value);
+                  setVariantChanged(true);
+                }}
+                className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm dark:bg-neutral-900"
+              >
+                <option value="">No variant link</option>
+                {availableVariants.map((variant) => (
+                  <option key={variant.id} value={variant.id}>
+                    {variant.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {availableColors.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">

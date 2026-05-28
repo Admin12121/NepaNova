@@ -253,11 +253,44 @@ def seed_default_layout():
     return layout
 
 
+def seed_variant_attributes():
+    from product.models import VariantAttributeDefinition
+
+    definitions = [
+        {
+            "key": "color",
+            "label": "Color",
+            "input_type": VariantAttributeDefinition.TYPE_COLOR,
+            "required": False,
+            "filterable": True,
+            "is_system": True,
+            "is_locked": True,
+            "position": 10,
+        },
+        {
+            "key": "size",
+            "label": "Size",
+            "input_type": VariantAttributeDefinition.TYPE_SELECT,
+            "required": False,
+            "filterable": True,
+            "is_system": True,
+            "is_locked": True,
+            "position": 20,
+        },
+    ]
+
+    for definition in definitions:
+        VariantAttributeDefinition.objects.update_or_create(
+            key=definition["key"], defaults=definition
+        )
+
+
 def seed_initial_data(sender=None, **kwargs):
     try:
         with transaction.atomic():
             roles = seed_rbac()
             seed_admin_user(roles)
             seed_default_layout()
+            seed_variant_attributes()
     except (OperationalError, ProgrammingError) as exc:
         logger.debug("Skipping initial seed until database is ready: %s", exc)

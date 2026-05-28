@@ -12,6 +12,7 @@ import {
   useProductsViewQuery,
   useTrendingProductsViewQuery,
   useGetlayoutQuery,
+  useVariantFiltersQuery,
 } from "@/lib/store/Service/api";
 import { Settings2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -82,12 +83,18 @@ function reducer(state: State, action: Action): State {
       [type]: value,
     };
   }
-  if (type in state && Array.isArray(state[type])) {
+  if (Array.isArray(state[type])) {
     return {
       ...state,
       [type]: (state[type] as string[]).includes(value as string)
         ? (state[type] as string[]).filter((item) => item !== value)
         : [...(state[type] as string[]), value as string],
+    };
+  }
+  if (typeof value === "string") {
+    return {
+      ...state,
+      [type]: [value],
     };
   }
   return state;
@@ -110,6 +117,7 @@ export interface Categorty {
 
 const CollectionPage = () => {
   const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
+  const { data: variantFilterData } = useVariantFiltersQuery({});
   const siteConfig: Categorty = useMemo(
     () =>
       layoutData?.config?.filters || {
@@ -128,6 +136,13 @@ const CollectionPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isPending, startTransition] = useTransition();
   const [state, dispatch] = useReducer(reducer, initialState);
+  const attributeFilters = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(state)
+        .filter(([key, value]) => key.startsWith("attr:") && Array.isArray(value))
+        .map(([key, value]) => [key.replace(/^attr:/, ""), value as string[]]),
+    );
+  }, [state]);
   const { data, isLoading } = useProductsViewQuery({
     category: category,
     search,
@@ -136,6 +151,7 @@ const CollectionPage = () => {
     size: state.size,
     stock: state.availability,
     color: state.color,
+    attributeFilters,
     page: state.page,
     max_price: state.max_price,
     min_price: state.min_price,
@@ -296,6 +312,7 @@ const CollectionPage = () => {
               >
                 <Sidebar
                   materials={siteConfig.materials}
+                  attributeFilters={variantFilterData?.attributes || []}
                   state={state}
                   dispatch={dispatch}
                   handleClose={handleClose}

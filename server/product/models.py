@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from django.core.exceptions import ValidationError
 from django.core.validators import (
@@ -9,6 +10,7 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import Q
+from django.utils.text import slugify
 
 from account.models import User
 
@@ -84,6 +86,56 @@ class ProductColor(models.Model):
         return f"{self.color_name} ({self.color_code})"
 
 
+class VariantAttributeDefinition(models.Model):
+    TYPE_TEXT = "text"
+    TYPE_NUMBER = "number"
+    TYPE_SELECT = "select"
+    TYPE_COLOR = "color"
+    TYPE_CHOICES = [
+        (TYPE_TEXT, "Text"),
+        (TYPE_NUMBER, "Number"),
+        (TYPE_SELECT, "Select"),
+        (TYPE_COLOR, "Color"),
+    ]
+
+    key = models.SlugField(max_length=64, unique=True)
+    label = models.CharField(max_length=100)
+    input_type = models.CharField(
+        max_length=20, choices=TYPE_CHOICES, default=TYPE_TEXT
+    )
+    required = models.BooleanField(default=False)
+    filterable = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False)
+    is_locked = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "label"]
+        indexes = [
+            models.Index(fields=["key"]),
+            models.Index(fields=["filterable", "position"]),
+        ]
+
+    def clean(self):
+        super().clean()
+        normalized_key = slugify(self.key or self.label or "").replace("-", "_")
+        if not normalized_key:
+            raise ValidationError({"key": "Attribute key is required."})
+        self.key = normalized_key
+        if self.input_type == self.TYPE_COLOR:
+            self.key = "color"
+
+    def delete(self, *args, **kwargs):
+        if self.is_locked:
+            raise ValidationError("System variant attributes cannot be deleted.")
+        return super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return self.label
+
+
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     color = models.ForeignKey(
@@ -105,17 +157,13 @@ class ProductVariant(models.Model):
     )
     stock = models.PositiveIntegerField(validators=[MinValueValidator(0)])
     attributes = models.JSONField(default=dict, blank=True)
+    attribute_signature = models.CharField(max_length=512, blank=True, db_index=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["product", "color_code", "size"],
-                name="unique_product_color_size_variant",
-            ),
-        ]
         indexes = [
             models.Index(fields=["product", "color_code"]),
             models.Index(fields=["product", "color_code", "size"]),
+            models.Index(fields=["product", "attribute_signature"]),
         ]
 
     def clean(self):
@@ -130,11 +178,14 @@ class ProductVariant(models.Model):
             raise ValidationError(
                 {"attributes": "Variant attributes must be a key/value object."}
             )
-        self.attributes = {
-            str(key).strip(): value
-            for key, value in self.attributes.items()
-            if str(key).strip()
-        }
+        self.attributes = self._normalize_attributes(self.attributes)
+
+        if not self.size and self.attributes.get("size"):
+            self.size = str(self.attributes.get("size")).strip() or None
+        if not self.color_code and self.attributes.get("color"):
+            self.color_code = str(self.attributes.get("color")).strip() or None
+        if not self.color_name and self.attributes.get("color_name"):
+            self.color_name = str(self.attributes.get("color_name")).strip() or None
 
         if self.color_code:
             normalized = self._normalize_color(self.color_code)
@@ -158,41 +209,31 @@ class ProductVariant(models.Model):
             self.color_name = self.color_name.strip()
 
         if self.size:
-            self.attributes.setdefault("size", self.size)
+            self.attributes["size"] = self.size
         if self.color_code:
-            self.attributes.setdefault("color", self.color_code)
+            self.attributes["color"] = self.color_code
         if self.color_name:
-            self.attributes.setdefault("color_name", self.color_name)
+            self.attributes["color_name"] = self.color_name
 
         if not self.color_code and not self.size and not self.attributes:
             raise ValidationError(
                 {"attributes": "Provide at least one attribute for the variant."}
             )
 
-        # Enforce uniqueness constraints manually since MySQL doesn't support conditional unique constraints
-        if self.color_code is None and self.size:
-            if (
-                ProductVariant.objects.filter(
-                    product=self.product, size=self.size, color_code__isnull=True
-                )
-                .exclude(pk=self.pk)
-                .exists()
-            ):
-                raise ValidationError(
-                    "A variant with this size already exists for this product."
-                )
-
-        if self.size is None and self.color_code:
-            if (
-                ProductVariant.objects.filter(
-                    product=self.product, color_code=self.color_code, size__isnull=True
-                )
-                .exclude(pk=self.pk)
-                .exists()
-            ):
-                raise ValidationError(
-                    "A variant with this color already exists for this product."
-                )
+        self.attribute_signature = self._build_attribute_signature(self.attributes)
+        if (
+            self.product_id
+            and self.attribute_signature
+            and ProductVariant.objects.filter(
+                product=self.product,
+                attribute_signature=self.attribute_signature,
+            )
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            raise ValidationError(
+                {"attributes": "A variant with these attributes already exists."}
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -204,10 +245,34 @@ class ProductVariant(models.Model):
             value = f"#{value}"
         return value
 
+    def _normalize_attributes(self, attributes):
+        normalized = {}
+        for key, value in attributes.items():
+            normalized_key = slugify(str(key).strip()).replace("-", "_")
+            if not normalized_key or value in (None, ""):
+                continue
+            normalized[normalized_key] = str(value).strip() if isinstance(value, str) else value
+        return normalized
+
+    def _build_attribute_signature(self, attributes):
+        comparable = {
+            key: str(value).strip().lower()
+            for key, value in attributes.items()
+            if key != "color_name" and value not in (None, "")
+        }
+        return json.dumps(comparable, sort_keys=True, separators=(",", ":"))[:512]
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="images"
+    )
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="images",
     )
     color = models.ForeignKey(
         ProductColor,

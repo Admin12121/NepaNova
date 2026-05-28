@@ -117,6 +117,21 @@ class ProductColorViewSet(viewsets.ModelViewSet):
         )
 
 
+class VariantAttributeDefinitionViewSet(viewsets.ModelViewSet):
+    queryset = VariantAttributeDefinition.objects.all().order_by("position", "label")
+    serializer_class = VariantAttributeDefinitionSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_locked:
+            return Response(
+                {"error": "System variant attributes cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = (
         Product.objects.select_related("category")
@@ -142,10 +157,10 @@ class ProductViewSet(viewsets.ModelViewSet):
                 product = product_serializer.save()
 
                 if is_multi_variant:
-                    self._create_variants(variants_data, product)
+                    created_variants = self._create_variants(variants_data, product)
                 else:
-                    self._create_single_variant(data, product)
-                self._save_images(images_data, product)
+                    created_variants = [self._create_single_variant(data, product)]
+                self._save_images(images_data, product, created_variants)
 
                 headers = self.get_success_headers(product_serializer.data)
                 return Response(
@@ -174,6 +189,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             color_code = data.get(f"variants[{index}][color_code]")
             color_name = data.get(f"variants[{index}][color_name]")
             attributes = self._extract_attributes(data, f"variants[{index}]")
+            attributes = self._build_variant_attributes(
+                attributes=attributes,
+                color_code=color_code,
+                color_name=color_name,
+                size=size,
+            )
 
             if any([size, price, stock, discount, color_code, color_name, attributes]):
                 variant = {
@@ -223,13 +244,38 @@ class ProductViewSet(viewsets.ModelViewSet):
         return attributes
 
     def _variant_key(self, color_code, size, attributes):
-        if color_code or size:
-            return (color_code or None, size or None, None)
-        return (
-            None,
-            None,
-            tuple(sorted((str(key), str(value)) for key, value in attributes.items())),
+        attributes = self._build_variant_attributes(
+            attributes=attributes,
+            color_code=color_code,
+            size=size,
         )
+        return tuple(
+            sorted(
+                (str(key), str(value).strip().lower())
+                for key, value in attributes.items()
+                if key != "color_name" and value not in (None, "")
+            )
+        )
+
+    def _normalize_attribute_key(self, key):
+        return str(key).strip().lower().replace(" ", "_").replace("-", "_")
+
+    def _build_variant_attributes(
+        self, attributes=None, color_code=None, color_name=None, size=None
+    ):
+        normalized = {}
+        for key, value in (attributes or {}).items():
+            attribute_key = self._normalize_attribute_key(key)
+            if attribute_key and value not in (None, ""):
+                normalized[attribute_key] = value
+        normalized_color = self._normalize_color_code(color_code or normalized.get("color"))
+        if normalized_color:
+            normalized["color"] = normalized_color
+        if color_name or normalized.get("color_name"):
+            normalized["color_name"] = str(color_name or normalized.get("color_name")).strip()
+        if size or normalized.get("size"):
+            normalized["size"] = str(size or normalized.get("size")).strip()
+        return normalized
 
     def _extract_images_data(self, data):
         images_data = []
@@ -268,6 +314,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return normalized, resolved_name, color_obj
 
     def _create_variants(self, variants_data, product):
+        created_variants = []
         for variant_data in variants_data:
             color_code, color_name, color_obj = self._ensure_color_reference(
                 variant_data.get("color_code"), variant_data.get("color_name")
@@ -285,7 +332,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             }
             variant_serializer = ProductVariantSerializer(data=variant_payload)
             variant_serializer.is_valid(raise_exception=True)
-            variant_serializer.save()
+            created_variants.append(variant_serializer.save())
+        return created_variants
 
     def _create_single_variant(self, single_variant_data, product):
         color_code, color_name, color_obj = self._ensure_color_reference(
@@ -304,18 +352,52 @@ class ProductViewSet(viewsets.ModelViewSet):
         }
         variant_serializer = ProductVariantSerializer(data=payload)
         variant_serializer.is_valid(raise_exception=True)
-        variant_serializer.save()
+        return variant_serializer.save()
 
-    def _save_images(self, images_data, product):
+    def _resolve_image_variant(self, image_variant, created_variants, product):
+        if image_variant in (None, ""):
+            return None
+        if isinstance(image_variant, str) and image_variant.startswith("index:"):
+            try:
+                variant_index = int(image_variant.split(":", 1)[1])
+            except (TypeError, ValueError):
+                return None
+            if 0 <= variant_index < len(created_variants):
+                return created_variants[variant_index]
+            return None
+        try:
+            numeric_value = int(image_variant)
+        except (TypeError, ValueError):
+            return None
+
+        variant = ProductVariant.objects.filter(
+            id=numeric_value, product=product
+        ).first()
+        if variant:
+            return variant
+        if 0 <= numeric_value < len(created_variants):
+            return created_variants[numeric_value]
+        return None
+
+    def _save_images(self, images_data, product, created_variants=None):
+        created_variants = created_variants or []
         for index, image in enumerate(images_data):
             if image:
                 image_index = self.request.data.get(f"imageIndex[{index}]")
                 image_color = self.request.data.get(f"imageColor[{index}]")
+                image_variant = self.request.data.get(f"imageVariant[{index}]")
+                variant = self._resolve_image_variant(
+                    image_variant, created_variants, product
+                )
                 image_data = {
                     "product": product.id,
                     "image": image,
                     "index": image_index,
                 }
+                if variant:
+                    image_data["variant"] = variant.id
+                    if not image_color and variant.color_code:
+                        image_color = variant.color_code
                 if image_color:
                     image_data["color"] = image_color
                 image_serializer = ProductImageSerializer(data=image_data)
@@ -385,10 +467,19 @@ class ProductViewSet(viewsets.ModelViewSet):
         return price_filter
 
     def _build_attribute_filters(self, params):
-        """Build attribute-related filters like color, size, and metal."""
+        """Build variant attribute filters while preserving legacy color/size params."""
         filters = Q()
+        attribute_values = {}
 
-        # Color filter prioritizes variant fields; falls back to description markers
+        for key in params.keys():
+            if key.startswith("attr[") and key.endswith("]"):
+                attribute_key = self._normalize_attribute_key(key[5:-1])
+                values = []
+                for item in params.getlist(key):
+                    values.extend([v.strip() for v in str(item).split(",") if v.strip()])
+                if attribute_key and values:
+                    attribute_values.setdefault(attribute_key, []).extend(values)
+
         color_param = params.get("color", "")
         color_values = [v.strip() for v in color_param.split(",") if v.strip()]
         color_values += [v.strip() for v in params.getlist("color") if v.strip()]
@@ -402,6 +493,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                     )
                 color_filter |= Q(productvariant__color_code__iexact=normalized)
                 color_filter |= Q(productvariant__color_name__iexact=value)
+                color_filter |= Q(productvariant__attributes__color__iexact=normalized)
                 color_filter |= Q(description__icontains=f"#{value}")
             filters &= color_filter
 
@@ -412,6 +504,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             size_filter = Q()
             for value in size_values:
                 size_filter |= Q(productvariant__size__iexact=value)
+                size_filter |= Q(productvariant__attributes__size__iexact=value)
                 size_filter |= Q(description__icontains=f"#{value}")
             filters &= size_filter
 
@@ -423,6 +516,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             for value in metal_values:
                 metal_filter |= Q(description__icontains=f"#{value}")
             filters &= metal_filter
+
+        for attribute_key, values in attribute_values.items():
+            if attribute_key in {"color", "size"}:
+                continue
+            attribute_filter = Q()
+            for value in values:
+                attribute_filter |= Q(
+                    **{f"productvariant__attributes__{attribute_key}__iexact": value}
+                )
+            filters &= attribute_filter
 
         stock_filter = params.get("stock")
         if stock_filter == "in":
@@ -503,9 +606,14 @@ class ProductViewSet(viewsets.ModelViewSet):
             raw_variant_id = variant_data.get("id")
             variant_id = int(raw_variant_id) if raw_variant_id else None
             size = variant_data.get("size") or None
-            attributes = variant_data.get("attributes", {})
             color_code, color_name, color_obj = self._ensure_color_reference(
                 variant_data.get("color_code"), variant_data.get("color_name")
+            )
+            attributes = self._build_variant_attributes(
+                attributes=variant_data.get("attributes", {}),
+                color_code=color_code,
+                color_name=color_name,
+                size=size,
             )
             variant_key = self._variant_key(color_code, size, attributes)
 
@@ -524,7 +632,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             else:
                 if variant_key in existing_combinations:
                     raise ValidationError(
-                        f"Variant with the same color/size already exists for this product."
+                        "Variant with the same attributes already exists for this product."
                     )
                 payload = {
                     "product": product.id,
@@ -541,6 +649,72 @@ class ProductViewSet(viewsets.ModelViewSet):
                 variant_serializer.is_valid(raise_exception=True)
                 variant_serializer.save()
                 existing_combinations.add(variant_key)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="variant-filters")
+    def variant_filters(self, request):
+        definitions = {
+            definition.key: definition
+            for definition in VariantAttributeDefinition.objects.filter(filterable=True)
+        }
+        values_by_key = {}
+        color_names = {}
+
+        variants = ProductVariant.objects.filter(product__deactive=False).values(
+            "attributes", "color_code", "color_name", "size"
+        )
+        for variant in variants:
+            attributes = self._build_variant_attributes(
+                attributes=variant.get("attributes") or {},
+                color_code=variant.get("color_code"),
+                color_name=variant.get("color_name"),
+                size=variant.get("size"),
+            )
+            for key, value in attributes.items():
+                if key == "color_name" or value in (None, ""):
+                    continue
+                values_by_key.setdefault(key, set()).add(str(value))
+                if key == "color" and variant.get("color_name"):
+                    color_names[str(value)] = variant["color_name"]
+
+        def sort_key(item):
+            key, definition = item
+            return (definition.position if definition else 999, key)
+
+        all_keys = set(definitions.keys()) | set(values_by_key.keys())
+        attributes = []
+        for key in sorted(
+            all_keys,
+            key=lambda item: sort_key((item, definitions.get(item))),
+        ):
+            definition = definitions.get(key)
+            input_type = definition.input_type if definition else "text"
+            label = definition.label if definition else key.replace("_", " ").title()
+            raw_values = sorted(values_by_key.get(key, set()), key=str.lower)
+            value_items = []
+            for value in raw_values:
+                if key == "color":
+                    value_items.append(
+                        {
+                            "label": color_names.get(value, value),
+                            "value": value,
+                            "color": value,
+                        }
+                    )
+                else:
+                    value_items.append({"label": value, "value": value})
+            attributes.append(
+                {
+                    "key": key,
+                    "label": label,
+                    "type": input_type,
+                    "filterable": definition.filterable if definition else True,
+                    "is_system": definition.is_system if definition else False,
+                    "is_locked": definition.is_locked if definition else False,
+                    "values": value_items,
+                }
+            )
+
+        return Response({"attributes": attributes})
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def recommended(self, request):
@@ -926,7 +1100,23 @@ class ProductImageViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        data = request.data.copy()
+        if data.get("color") == "":
+            data["color"] = None
+        if data.get("variant") == "":
+            data["variant"] = None
+        if data.get("variant"):
+            variant = ProductVariant.objects.filter(
+                id=data.get("variant"), product=instance.product
+            ).first()
+            if not variant:
+                return Response(
+                    {"error": "Variant does not belong to this product."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not data.get("color") and variant.color_code:
+                data["color"] = variant.color_code
+        serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "Image Updated"}, status=status.HTTP_200_OK)
