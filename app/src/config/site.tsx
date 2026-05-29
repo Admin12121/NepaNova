@@ -10,9 +10,9 @@ export const siteConfig = {
   description:
     "Purpose-driven Himalayan products funding grassroots innovation and self-reliance in Nepal.",
   links: {
-    instagram: "https://www.instagram.com/nepanova/",
-    facebook: "https://www.facebook.com/nepanova",
-    tiktok: "https://www.tiktok.com/@nepanova",
+    instagram: "https://www.instagram.com/nepanova_impact/",
+    facebook: "https://www.facebook.com/EveryPurchaseBuildsNepal",
+    tiktok: "https://www.tiktok.com/@nepanova.impact",
     mail: "mailto:info@nepanova.com",
   },
   footerNav: [
@@ -41,17 +41,17 @@ export const siteConfig = {
       items: [
         {
           title: "Instagram",
-          href: "https://www.instagram.com/nepanova/",
+          href: "https://www.instagram.com/nepanova_impact/",
           external: true,
         },
         {
           title: "Facebook",
-          href: "https://www.facebook.com/nepanova",
+          href: "https://www.facebook.com/EveryPurchaseBuildsNepal",
           external: true,
         },
         {
           title: "TikTok",
-          href: "https://www.tiktok.com/@nepanova",
+          href: "https://www.tiktok.com/@nepanova.impact",
           external: true,
         },
       ],

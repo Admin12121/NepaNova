@@ -89,7 +89,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
   pending:
-    "text-[#B22234] bg-[#B22234]/10 dark:bg-[#B22234]/20 dark:text-[#FCA5AF]",
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   verified:
     "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   proceed:

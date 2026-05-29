@@ -89,7 +89,7 @@ function ColorTag({
                   className={cn(
                     "w-4 h-4 rounded-full border transition-all flex-shrink-0",
                     isSelected
-                      ? "ring-2 ring-offset-1 ring-brandNavy border-brandNavy scale-110"
+                      ? "ring-2 ring-offset-1 ring-brandGreen border-brandGreen scale-110"
                       : "border-neutral-300 dark:border-neutral-600 hover:scale-110 hover:border-neutral-500",
                   )}
                   style={{ backgroundColor: color.code }}

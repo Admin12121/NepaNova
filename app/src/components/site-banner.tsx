@@ -42,7 +42,7 @@ export default function SiteBanner() {
           className="group relative top-0 bg-main py-2 text-white transition-all duration-300 md:py-0 w-full"
           style={{
             background:
-              "linear-gradient(to right, #B22234, #1B3A6B, #4A7C2F)",
+              "linear-gradient(to right, #4A7C2F, #1B3A6B, #B22234)",
           }}
         >
           <div className="container flex flex-col items-center justify-center gap-4 md:h-9 md:flex-row">

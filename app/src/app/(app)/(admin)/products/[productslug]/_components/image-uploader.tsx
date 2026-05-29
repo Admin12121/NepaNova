@@ -295,7 +295,7 @@ const Uploader = ({
                         "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
                         "hover:scale-110 active:scale-95",
                         isSelected
-                          ? "border-brandNavy ring-2 ring-offset-1 ring-brandNavy/30"
+                          ? "border-brandGreen ring-2 ring-offset-1 ring-brandGreen/30"
                           : "border-neutral-300 dark:border-neutral-600 hover:border-neutral-400",
                       )}
                       style={{ backgroundColor: color.code }}

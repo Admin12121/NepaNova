@@ -19,8 +19,8 @@ const sizeMap = {
 };
 
 const colorMap = {
-  default: "#1B3A6B",
-  primary: "#1B3A6B",
+  default: "#4A7C2F",
+  primary: "#4A7C2F",
   secondary: "gray",
   success: "#4A7C2F",
   warning: "#B22234",

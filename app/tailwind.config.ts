@@ -17,12 +17,12 @@ const config: Config = {
     },
     backgroundImage: {
       "radial-gradient": "radial-gradient(circle at 50% 40%, white, black)",
-      "custom-gradient": "linear-gradient(135deg, #B22234, #1B3A6B, #4A7C2F)",
+      "custom-gradient": "linear-gradient(135deg, #4A7C2F, #1B3A6B, #B22234)",
     },
     extend: {
       colors: {
         custom: "hsl(var(--custom))",
-        main: "#1B3A6B",
+        main: "#4A7C2F",
         brandRed: "#B22234",
         brandNavy: "#1B3A6B",
         brandGreen: "#4A7C2F",
