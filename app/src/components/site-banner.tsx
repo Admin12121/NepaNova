@@ -39,10 +39,10 @@ export default function SiteBanner() {
       {/* Promotional Message Banner */}
       {showMessage && (
         <div
-          className="group relative top-0 bg-amber-600 py-2 text-white transition-all duration-300 md:py-0 w-full"
+          className="group relative top-0 bg-main py-2 text-white transition-all duration-300 md:py-0 w-full"
           style={{
             background:
-              "linear-gradient(to right, rgb(209 153 73), rgb(177 125 56), rgb(82 71 53))",
+              "linear-gradient(to right, #B22234, #1B3A6B, #4A7C2F)",
           }}
         >
           <div className="container flex flex-col items-center justify-center gap-4 md:h-9 md:flex-row">

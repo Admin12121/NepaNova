@@ -10,12 +10,12 @@ function Callout({
   type?: "info" | "warning" | "tip" | "important";
 }) {
   const styles = {
-    info: "border-blue-500/30 bg-blue-500/5 text-blue-700 dark:text-blue-300",
+    info: "border-brandNavy/30 bg-brandNavy/5 text-brandNavy dark:text-[#AABFE5]",
     warning:
-      "border-orange-500/30 bg-orange-500/5 text-orange-700 dark:text-orange-300",
-    tip: "border-green-500/30 bg-green-500/5 text-green-700 dark:text-green-300",
+      "border-brandRed/30 bg-brandRed/5 text-brandRed dark:text-[#FCA5AF]",
+    tip: "border-brandGreen/30 bg-brandGreen/5 text-brandGreen dark:text-[#B8D7A5]",
     important:
-      "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300",
+      "border-brandRed/30 bg-brandRed/5 text-brandRed dark:text-[#FCA5AF]",
   };
 
   const icons = {

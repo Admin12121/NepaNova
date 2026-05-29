@@ -19,12 +19,12 @@ const sizeMap = {
 };
 
 const colorMap = {
-  default: "#27272a ",
-  primary: "blue",
+  default: "#1B3A6B",
+  primary: "#1B3A6B",
   secondary: "gray",
-  success: "green",
-  warning: "orange",
-  danger: "red",
+  success: "#4A7C2F",
+  warning: "#B22234",
+  danger: "#B22234",
 };
 
 export const Spinner: React.FC<SpinnerProps> = ({

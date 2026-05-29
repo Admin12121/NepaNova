@@ -9,7 +9,7 @@ export const BackButton = ({ label, href, className }: BackButtonProps) => {
   return (
     <Link
       href={href}
-      className={`${className} ml-1 text-amber-500 text-xs text-[rgb(39 39 42 / 1)] hover:text-violet-500 transition duration-500`}
+      className={`${className} ml-1 text-main text-xs hover:text-brandNavy transition duration-500`}
     >
       {label}
     </Link>

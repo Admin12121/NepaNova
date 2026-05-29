@@ -111,7 +111,10 @@ export function UserNav({ align }: { align?: "center" | "end" | "start" }) {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => Logout()}>
+        <DropdownMenuItem
+          onClick={() => Logout()}
+          className="text-brandRed focus:bg-brandRed/10 focus:text-brandRed"
+        >
           Log out
           <DropdownMenuShortcut>⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>

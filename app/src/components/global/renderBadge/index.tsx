@@ -18,22 +18,22 @@ export const renderBadge = (status: string) => {
       label: string;
     };
   } = {
-    pending: { varaint: "warning", color: "bg-orange-500", label: "Pending" },
-    verified: { varaint: "warning", color: "bg-blue-500", label: "Verified" },
-    proceed: { color: "bg-blue-500", label: "Proceed" },
-    packed: { color: "bg-blue-500", label: "Packed" },
+    pending: { varaint: "warning", color: "bg-brandNavy", label: "Pending" },
+    verified: { varaint: "warning", color: "bg-brandNavy", label: "Verified" },
+    proceed: { color: "bg-brandNavy", label: "Proceed" },
+    packed: { color: "bg-brandNavy", label: "Packed" },
     delivered: {
       varaint: "success",
-      color: "bg-green-500",
+      color: "bg-brandGreen",
       label: "Delivered",
     },
     successful: {
       varaint: "success",
-      color: "bg-green-500",
+      color: "bg-brandGreen",
       label: "Successful",
     },
     unpaid: { varaint: "secondary", color: "bg-neutral-500", label: "Unpaid" },
-    cancelled: { varaint: "danger", color: "bg-red-500", label: "Cancelled" },
+    cancelled: { varaint: "danger", color: "bg-brandRed", label: "Cancelled" },
   };
 
   const { varaint, color, label } = statusMap[status] || {

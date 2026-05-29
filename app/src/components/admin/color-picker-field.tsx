@@ -172,7 +172,7 @@ export const ColorPickerField = ({
                   "w-full px-3 py-2 text-sm border rounded-md",
                   "bg-white dark:bg-neutral-900",
                   "border-neutral-200 dark:border-neutral-700",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  "focus:outline-none focus:ring-2 focus:ring-brandNavy"
                 )}
               />
             </div>
@@ -197,9 +197,9 @@ export const ColorPickerField = ({
                         "relative w-full aspect-square rounded-md",
                         "border-2 transition-all cursor-pointer",
                         "hover:scale-105 active:scale-95",
-                        "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500",
+                        "focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brandNavy",
                         isSelected
-                          ? "border-blue-500 shadow-lg ring-2 ring-blue-300"
+                          ? "border-brandNavy shadow-lg ring-2 ring-brandNavy/30"
                           : "border-neutral-300 dark:border-neutral-600 hover:border-neutral-400"
                       )}
                       style={{ backgroundColor: color.code }}

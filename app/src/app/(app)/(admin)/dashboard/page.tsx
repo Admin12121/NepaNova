@@ -89,23 +89,26 @@ import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
   pending:
-    "text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400",
-  verified: "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
+    "text-[#B22234] bg-[#B22234]/10 dark:bg-[#B22234]/20 dark:text-[#FCA5AF]",
+  verified:
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   proceed:
-    "text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400",
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   packed:
-    "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   delivered:
-    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
+    "text-[#4A7C2F] bg-[#4A7C2F]/10 dark:bg-[#4A7C2F]/25 dark:text-[#B8D7A5]",
   successful:
-    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
-  cancelled: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
+    "text-[#4A7C2F] bg-[#4A7C2F]/10 dark:bg-[#4A7C2F]/25 dark:text-[#B8D7A5]",
+  cancelled:
+    "text-[#B22234] bg-[#B22234]/10 dark:bg-[#B22234]/20 dark:text-[#FCA5AF]",
   unpaid: "text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400",
-  confirmed: "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
+  confirmed:
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   in_progress:
-    "text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400",
+    "text-[#1B3A6B] bg-[#1B3A6B]/10 dark:bg-[#1B3A6B]/30 dark:text-[#AABFE5]",
   completed:
-    "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400",
+    "text-[#4A7C2F] bg-[#4A7C2F]/10 dark:bg-[#4A7C2F]/25 dark:text-[#B8D7A5]",
 };
 
 // Chart Configurations

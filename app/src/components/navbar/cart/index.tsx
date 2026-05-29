@@ -239,7 +239,7 @@ export default function Cart() {
         <Button variant="ghost" size="icon" className="h-8 w-8 px-0">
           <ShoppingBag className="w-4 h-4" />
           {totalPieces > 0 && (
-            <span className="absolute bg-amber-600 text-white w-[18px] h-[18px] text-[9px] top-0 flex items-center justify-center rounded-full right-0 border-[3px] !border-white dark:!border-transparent">
+            <span className="absolute bg-main text-white w-[18px] h-[18px] text-[9px] top-0 flex items-center justify-center rounded-full right-0 border-[3px] !border-white dark:!border-transparent">
               {totalPieces}
             </span>
           )}

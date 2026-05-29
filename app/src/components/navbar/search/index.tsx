@@ -213,7 +213,7 @@ export function PlaceholdersAndVanishInput() {
         className={cn(
           "w-full cursor-pointer relative md:max-w-xl md:mx-auto flex bg-default-400/20 dark:bg-default-500/20 h-[40px] rounded-lg overflow-hidden shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),_0px_1px_0px_0px_rgba(25,28,33,0.02),_0px_0px_0px_1px_rgba(25,28,33,0.08)] transition duration-200",
           "dark:bg-zinc-800/50 bg-muted/50",
-          "ring-offset-background border-transparent md:border-none outline-none ring-2 md:ring-0 ring-[#7828c8]/50 ring-offset-2 md:ring-offset-0 items-center",
+          "ring-offset-background border-transparent md:border-none outline-none ring-2 md:ring-0 ring-main/50 ring-offset-2 md:ring-offset-0 items-center",
         )}
         onSubmit={handleSubmit}
       >

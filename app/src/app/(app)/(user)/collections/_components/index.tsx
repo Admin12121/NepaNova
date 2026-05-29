@@ -243,7 +243,7 @@ const CollectionPage = () => {
                 className={cn(
                   "!m-0 gap-2 min-w-[8rem] px-3 flex !justify-between w-full",
                   filters &&
-                    "ring-offset-2 ring-2 dark:ring-offset-background ring-amber-600/40 transition ",
+                    "ring-offset-2 ring-2 dark:ring-offset-background ring-main/40 transition ",
                 )}
                 onClick={handleClose}
               >

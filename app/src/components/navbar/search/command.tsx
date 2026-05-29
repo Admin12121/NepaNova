@@ -264,7 +264,7 @@ export default function Component() {
             Not what you’re looking for? Try the{" "}
             <Button
               variant="link"
-              className="text-xs px-0 font-normal text-amber-600 underline"
+              className="text-xs px-0 font-normal text-main underline"
             >
               Help Center
             </Button>

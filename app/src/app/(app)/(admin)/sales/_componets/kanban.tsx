@@ -700,11 +700,11 @@ const Card = ({
     return relevant.map((status) => {
       const isVerified = statusMap[status];
       return isVerified ? (
-        <BadgeCheck className="w-4 h-4 stroke-blue-500 " key={status} />
+        <BadgeCheck className="w-4 h-4 stroke-brandNavy " key={status} />
       ) : (
         <Badge
           onClick={handleUpdate}
-          className="w-4 h-4 stroke-orange-500 !cursor-pointer hover:fill-orange-500/40"
+          className="w-4 h-4 stroke-main !cursor-pointer hover:fill-main/40"
           key={status}
         />
       );
@@ -722,10 +722,10 @@ const Card = ({
         {...{
           className: cn(
             "cursor-grab rounded-lg border hover:ring-2 ring-offset-background hover:ring-offset-2 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 p-2 active:cursor-grabbing transition-all duration-500",
-            title === "OnShipping" && "ring-orange-400",
-            title === "Arrived" && "ring-blue-400",
-            title === "Delivered" && "ring-green-400",
-            title === "Canceled" && "ring-red-400",
+            title === "OnShipping" && "ring-brandNavy",
+            title === "Arrived" && "ring-brandNavy",
+            title === "Delivered" && "ring-brandGreen",
+            title === "Canceled" && "ring-brandRed",
           ),
         }}
       >

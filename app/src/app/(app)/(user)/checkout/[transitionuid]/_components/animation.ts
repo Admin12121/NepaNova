@@ -2,7 +2,7 @@ import confetti from "canvas-confetti";
 
 export const handleClick = () => {
     const end = Date.now() + 3 * 1000; // 3 seconds
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+    const colors = ["#B22234", "#1B3A6B", "#4A7C2F", "#F8FAFC"];
  
     const frame = () => {
       if (Date.now() > end) return;

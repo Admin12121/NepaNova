@@ -17,17 +17,20 @@ const config: Config = {
     },
     backgroundImage: {
       "radial-gradient": "radial-gradient(circle at 50% 40%, white, black)",
-      "custom-gradient": "linear-gradient(135deg, #A97CF8, #F38CB8, #FDCC92)",
+      "custom-gradient": "linear-gradient(135deg, #B22234, #1B3A6B, #4A7C2F)",
     },
     extend: {
       colors: {
         custom: "hsl(var(--custom))",
-        main: "#d19847",
-        themeBlack: "#09090B",
-        themeGray: "#27272A",
-        themeDarkGray: "#27272A",
-        themeTextGray: "#B4B0AE",
-        themeTextWhite: "#F7ECE9",
+        main: "#1B3A6B",
+        brandRed: "#B22234",
+        brandNavy: "#1B3A6B",
+        brandGreen: "#4A7C2F",
+        themeBlack: "#08101F",
+        themeGray: "#10213C",
+        themeDarkGray: "#10213C",
+        themeTextGray: "#AAB5C8",
+        themeTextWhite: "#F8FAFC",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
