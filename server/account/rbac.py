@@ -25,6 +25,10 @@ def user_has_permission(user, code):
 class HasRbacPermission(BasePermission):
     required_permission = None
 
+    def __init__(self, required_permission=None):
+        if required_permission is not None:
+            self.required_permission = required_permission
+
     def has_permission(self, request, view):
         code = getattr(view, "required_permission", None) or self.required_permission
         if code is None:

@@ -124,7 +124,7 @@ class RoleSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'color', 'position', 'is_default', 'is_system',
             'permissions', 'permission_codes', 'user_count', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['slug', 'is_default', 'is_system', 'created_at', 'updated_at']
 
     def get_permission_codes(self, obj):
         return list(obj.permissions.values_list('code', flat=True))

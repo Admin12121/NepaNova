@@ -1,4 +1,5 @@
 import logging
+import secrets
 from datetime import timedelta
 
 from django.conf import settings
@@ -10,10 +11,12 @@ from django.utils import timezone
 from rest_framework import filters, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from account.models import DeliveryAddress
+from account.rbac import HasRbacPermission
 from account.renderers import UserRenderer
 from account.utils import send_email
 from layout.utils import get_delivery_estimate_days
@@ -22,8 +25,42 @@ from server.utils.encryption import encrypt_response
 
 from .models import *
 from .serializers import *
+from .services import pickdrop
 
 logger = logging.getLogger(__name__)
+
+
+def send_review_invitation_email_for_sale(sale):
+    """Send an email inviting the customer to review their purchased products."""
+    user = sale.costumer_name
+    frontend_url = getattr(settings, "FRONTEND_URL", "https://nepanova.com").rstrip("/")
+
+    sale_products = sale.products.select_related("product").all()
+    products_info = []
+    for sp in sale_products:
+        if sp.product:
+            product_url = f"{frontend_url}/collections/{sp.product.productslug}?review=true"
+            products_info.append(
+                {
+                    "product_name": sp.product.product_name,
+                    "review_url": product_url,
+                }
+            )
+
+    if not products_info:
+        return
+
+    subject = f"Your order #{sale.transactionuid} has been delivered - Share your experience!"
+    body = render_to_string(
+        "delivery_review.html",
+        {
+            "first_name": user.first_name or "Valued Customer",
+            "transactionuid": sale.transactionuid,
+            "products": products_info,
+            "reviews_url": f"{frontend_url}/reviews",
+        },
+    )
+    send_email(subject, user.email, body)
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -85,12 +122,18 @@ class SalesViewSet(viewsets.ModelViewSet):
         return SaleQuertSetSerializer
 
     def get_permissions(self):
-        if self.action in ["update", "partial_update"]:
-            # Only admin can update orders (change status, delivery date, etc.)
-            return [IsAuthenticated(), IsAdminUser()]
+        if self.action in [
+            "update",
+            "partial_update",
+            "create_shipment",
+            "retry_shipment",
+            "cancel_shipment",
+            "sync_shipment",
+            "shipment_detail",
+        ]:
+            return [HasRbacPermission("orders.manage")]
         if self.action == "destroy":
-            # Only admin can delete orders
-            return [IsAuthenticated(), IsAdminUser()]
+            return [HasRbacPermission("orders.manage")]
         return super().get_permissions()
 
     @encrypt_response
@@ -111,7 +154,11 @@ class SalesViewSet(viewsets.ModelViewSet):
             )
             queryset = queryset.filter(filters)
         user = self.request.user
-        if not user.is_superuser:
+        if not (
+            user.is_superuser
+            or user.has_rbac_permission("orders.view")
+            or user.has_rbac_permission("orders.manage")
+        ):
             return queryset.filter(costumer_name=user)
         return queryset
 
@@ -260,14 +307,35 @@ class SalesViewSet(viewsets.ModelViewSet):
             "successful",
         ):
             try:
-                self._send_review_invitation_email(updated_instance)
+                send_review_invitation_email_for_sale(updated_instance)
             except Exception as e:
                 logger.error(
                     f"Failed to send review invitation email for "
                     f"{updated_instance.transactionuid}: {e}"
                 )
 
+        # Queue Pick & Drop only when a verified order is moved into shipping.
+        if old_status == "verified" and new_status == "proceed":
+            def queue_pickdrop_shipment():
+                try:
+                    pickdrop.queue_shipment_for_sale(updated_instance)
+                except pickdrop.PickDropConfigurationError as e:
+                    logger.warning(
+                        "Pick & Drop shipment queue skipped for %s: %s",
+                        updated_instance.transactionuid,
+                        e,
+                    )
+                except pickdrop.PickDropError as e:
+                    logger.error(
+                        "Pick & Drop shipment queue failed for %s: %s",
+                        updated_instance.transactionuid,
+                        e,
+                    )
+
+            transaction.on_commit(queue_pickdrop_shipment)
+
     def _send_review_invitation_email(self, sale):
+        return send_review_invitation_email_for_sale(sale)
         """Send an email inviting the customer to review their purchased products."""
         user = sale.costumer_name
         frontend_url = getattr(
@@ -348,6 +416,108 @@ class SalesViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="shipment")
+    def shipment_detail(self, request, pk=None):
+        sale = self.get_object()
+        shipment = getattr(sale, "shipment", None)
+        if not shipment:
+            return Response(
+                {"error": "No shipment has been created for this order."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="create-shipment")
+    def create_shipment(self, request, pk=None):
+        sale = self.get_object()
+        try:
+            shipment = pickdrop.create_shipment_for_sale(sale)
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="retry-shipment")
+    def retry_shipment(self, request, pk=None):
+        sale = self.get_object()
+        try:
+            shipment = pickdrop.create_shipment_for_sale(sale, force=True)
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="sync-shipment")
+    def sync_shipment(self, request, pk=None):
+        sale = self.get_object()
+        shipment = getattr(sale, "shipment", None)
+        if not shipment:
+            return Response(
+                {"error": "No shipment has been created for this order."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            shipment = pickdrop.sync_shipment(shipment)
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="cancel-shipment")
+    def cancel_shipment(self, request, pk=None):
+        sale = self.get_object()
+        shipment = getattr(sale, "shipment", None)
+        if not shipment:
+            return Response(
+                {"error": "No shipment has been created for this order."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            shipment = pickdrop.cancel_shipment(shipment)
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+
+
+def pickdrop_webhook_secret_matches(request):
+    expected = getattr(settings, "PICKDROP_WEBHOOK_SECRET", "")
+    if not expected:
+        return False
+
+    header_name = getattr(settings, "PICKDROP_WEBHOOK_SECRET_HEADER", "")
+    if not header_name:
+        return False
+    candidate = request.headers.get(header_name, "")
+    return bool(candidate) and secrets.compare_digest(str(candidate), str(expected))
+
+
+class PickDropWebhookView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        if not pickdrop_webhook_secret_matches(request):
+            return Response(
+                {"error": "Invalid webhook secret."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            shipment = pickdrop.update_shipment_from_webhook(request.data)
+        except pickdrop.PickDropAPIError as e:
+            logger.warning("Pick & Drop webhook ignored: %s", e)
+            response_status = (
+                status.HTTP_202_ACCEPTED
+                if "No local shipment found" in str(e)
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response({"error": str(e)}, status=response_status)
+
+        return Response(
+            {
+                "status": "success",
+                "shipment": ShipmentSerializer(shipment).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class RedeemCodeViewSet(viewsets.ModelViewSet):
     """
@@ -369,8 +539,7 @@ class RedeemCodeViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve", "verify_code"]:
             # Any authenticated user can view/verify redeem codes
             return [IsAuthenticated()]
-        # Create, update, delete require admin
-        return [IsAuthenticated(), IsAdminUser()]
+        return [HasRbacPermission("orders.manage")]
 
     def get_queryset(self):
         code = self.request.query_params.get("code")

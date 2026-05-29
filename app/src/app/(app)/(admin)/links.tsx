@@ -7,6 +7,7 @@ import {
   MessageCircle,
   Mail,
   BookOpenText,
+  ShieldCheck,
 } from "lucide-react";
 
 export const Links = [
@@ -19,6 +20,11 @@ export const Links = [
     title: "Users",
     icon: UserRound,
     href: "/users",
+  },
+  {
+    title: "Roles",
+    icon: ShieldCheck,
+    href: "/roles",
   },
   {
     title: "Products",

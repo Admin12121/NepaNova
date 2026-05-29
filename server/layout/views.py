@@ -1,5 +1,7 @@
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny
+
+from account.rbac import HasRbacPermission
 
 from .models import Layout
 from .serializers import LayoutSerializer
@@ -19,4 +21,4 @@ class LayoutViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
             return [AllowAny()]
-        return [IsAuthenticated(), IsAdminUser()]
+        return [HasRbacPermission("settings.manage")]

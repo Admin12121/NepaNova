@@ -17,7 +17,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -26,6 +26,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from server.utils.encryption import encrypt_response
 
 from .models import *
+from .rbac import HasRbacPermission
 from .renderers import UserRenderer
 from .serializers import *
 from .utils import (
@@ -83,8 +84,8 @@ class NewsLetterViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             self.permission_classes = [AllowAny]
         else:
-            # list, retrieve, etc. require admin
-            self.permission_classes = [IsAuthenticated, IsAdminUser]
+            self.permission_classes = [HasRbacPermission]
+            self.required_permission = "newsletter.manage"
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
@@ -141,7 +142,8 @@ class RbacPermissionViewSet(viewsets.ModelViewSet):
     queryset = RbacPermission.objects.all().order_by("code")
     serializer_class = RbacPermissionSerializer
     renderer_classes = [UserRenderer]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "roles.manage"
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["code", "name", "description"]
     ordering_fields = ["code", "name", "created_at"]
@@ -151,10 +153,20 @@ class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.prefetch_related("permissions").all()
     serializer_class = RoleSerializer
     renderer_classes = [UserRenderer]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "roles.manage"
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["name", "slug"]
     ordering_fields = ["position", "name", "created_at"]
+
+    def destroy(self, request, *args, **kwargs):
+        role = self.get_object()
+        if role.is_system:
+            return Response(
+                {"error": "System roles cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
@@ -181,7 +193,8 @@ class UserRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.select_related("user", "role", "assigned_by").all()
     serializer_class = UserRoleSerializer
     renderer_classes = [UserRenderer]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "roles.manage"
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["user__email", "role__name", "role__slug"]
     ordering_fields = ["assigned_at"]
@@ -196,8 +209,12 @@ class UserViewSet(viewsets.ModelViewSet):
     renderer_classes = [UserRenderer]
 
     def get_permissions(self):
-        if self.action in ["list", "retrieve", "destroy", "get_all_users"]:
-            self.permission_classes = [IsAuthenticated, IsAdminUser]
+        if self.action in ["list", "retrieve", "get_all_users"]:
+            self.permission_classes = [HasRbacPermission]
+            self.required_permission = "users.view"
+        elif self.action == "destroy":
+            self.permission_classes = [HasRbacPermission]
+            self.required_permission = "users.manage"
         elif self.action in ["create", "login", "social_login"]:
             self.permission_classes = [AllowAny]
         elif self.action in ["update", "partial_update", "me", "device"]:
@@ -530,11 +547,18 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("-id")
     serializer_class = UserDataSerializer
     renderer_classes = [UserRenderer]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [HasRbacPermission]
     pagination_class = CustomPagination
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["first_name", "last_name", "email", "username"]
     ordering_fields = ["created_at", "first_name", "email"]
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve", "list_users", "retrieve_user_by_username"]:
+            return [HasRbacPermission("users.view")]
+        if self.action == "set_roles":
+            return [HasRbacPermission("roles.manage")]
+        return [HasRbacPermission("users.manage")]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -728,7 +752,7 @@ class SiteViewLogViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "create":
             return [AllowAny()]
-        return [IsAuthenticated(), IsAdminUser()]
+        return [HasRbacPermission("dashboard.view")]
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -746,7 +770,7 @@ class SiteViewLogViewSet(viewsets.ModelViewSet):
 
 class SiteViewLogAnalyticsView(APIView):
     def get_permissions(self):
-        return [IsAuthenticated(), IsAdminUser()]
+        return [HasRbacPermission("dashboard.view")]
 
     def get(self, request):
         period = request.query_params.get("period", "daily")
@@ -842,8 +866,7 @@ class SearchView(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ["create", "list", "popular_keywords"]:
             return [AllowAny()]
-        # DELETE, UPDATE, etc. require admin
-        return [IsAuthenticated(), IsAdminUser()]
+        return [HasRbacPermission("settings.manage")]
 
     # Only allow GET, POST, HEAD, OPTIONS for non-admin; admin can do anything via permissions
     http_method_names = ["get", "post", "delete", "head", "options"]

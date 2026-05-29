@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import SalesViewSet, RedeemCodeViewSet
+from .views import PickDropWebhookView, SalesViewSet, RedeemCodeViewSet
 from .dashboard_views import (
     DashboardStatsView,
     SalesChartView,
@@ -17,6 +17,7 @@ router.register(r'redeemcode', RedeemCodeViewSet, basename='redeem-code')
 urlpatterns = [
     path('', include(router.urls)),
     path('sales/transaction/<str:transactionuid>/', SalesViewSet.as_view({'get': 'retrieve'}), name='sales-detail'),
+    path('pickdrop/webhook/', PickDropWebhookView.as_view(), name='pickdrop-webhook'),
     
     # Dashboard API endpoints
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard-stats'),

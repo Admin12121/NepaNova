@@ -4,6 +4,8 @@ import { toast } from "sonner";
 
 import {
   useDeleteUserMutation,
+  useGetRolesQuery,
+  useSetUserRolesMutation,
   useUpdateUserStateMutation,
 } from "@/lib/store/Service/api";
 
@@ -66,6 +68,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge as Chip } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
@@ -90,9 +99,20 @@ interface Users {
   dob: string | null;
   gender: string | null;
   state: string;
+  role?: string;
+  roles?: string[];
+  permissions?: string[];
   created_at: string;
   updated_at: string;
   last_login: string | null;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  slug: string;
+  color: string;
+  is_system: boolean;
 }
 
 interface ApiResponse {
@@ -182,6 +202,19 @@ export default function UserTable({
   const [deleteModalUsername, setDeleteModalUsername] =
     React.useState<string>("");
   const [updateUserState] = useUpdateUserStateMutation();
+  const [setUserRoles, { isLoading: roleSaving }] = useSetUserRolesMutation();
+  const { data: rolesData } = useGetRolesQuery(
+    { token: accessToken },
+    { skip: !accessToken },
+  );
+  const roles = React.useMemo<Role[]>(
+    () => rolesData?.results || rolesData || [],
+    [rolesData],
+  );
+  const [roleDialogUser, setRoleDialogUser] = React.useState<Users | null>(null);
+  const [selectedRoleIds, setSelectedRoleIds] = React.useState<Set<number>>(
+    new Set(),
+  );
 
   const handleStateChange = async (userId: number, newState: string) => {
     try {
@@ -194,6 +227,46 @@ export default function UserTable({
       refetch();
     } catch (err: any) {
       toast.error(err?.data?.error || "Failed to update user state");
+    }
+  };
+
+  const openRoleDialog = (user: Users) => {
+    const currentRoles = new Set(user.roles || []);
+    setSelectedRoleIds(
+      new Set(
+        roles
+          .filter((role) => currentRoles.has(role.slug))
+          .map((role) => role.id),
+      ),
+    );
+    setRoleDialogUser(user);
+  };
+
+  const toggleRole = (roleId: number, checked: boolean) => {
+    setSelectedRoleIds((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(roleId);
+      } else {
+        next.delete(roleId);
+      }
+      return next;
+    });
+  };
+
+  const saveUserRoles = async () => {
+    if (!roleDialogUser) return;
+    try {
+      await setUserRoles({
+        userId: roleDialogUser.id,
+        roleIds: Array.from(selectedRoleIds),
+        token: accessToken,
+      }).unwrap();
+      toast.success("User roles updated");
+      setRoleDialogUser(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.data?.error || "Failed to update user roles");
     }
   };
 
@@ -331,6 +404,19 @@ export default function UserTable({
           );
         case "provider":
           return <p>{users.provider || "default"}</p>;
+        case "role":
+          return (
+            <div className="flex flex-wrap gap-1">
+              {(users.roles && users.roles.length > 0
+                ? users.roles
+                : [users.role || "user"]
+              ).map((role) => (
+                <Chip key={role} variant="outline" className="capitalize">
+                  {role}
+                </Chip>
+              ))}
+            </div>
+          );
         case "actions":
           return (
             <div className="relative flex items-center justify-center gap-2">
@@ -344,13 +430,19 @@ export default function UserTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[160px]">
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => router.push(`/users/${users.username}`)}
-                  >
-                    View
-                  </DropdownMenuItem>
-                  <DropdownMenuSub>
+	                  <DropdownMenuItem
+	                    className="cursor-pointer"
+	                    onClick={() => router.push(`/users/${users.username}`)}
+	                  >
+	                    View
+	                  </DropdownMenuItem>
+	                  <DropdownMenuItem
+	                    className="cursor-pointer"
+	                    onClick={() => openRoleDialog(users)}
+	                  >
+	                    Roles
+	                  </DropdownMenuItem>
+	                  <DropdownMenuSub>
                     <DropdownMenuSubTrigger>State</DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <DropdownMenuRadioGroup
@@ -388,7 +480,7 @@ export default function UserTable({
           return cellValue;
       }
     },
-    [router],
+    [router, roles],
   );
 
   const onRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -755,6 +847,69 @@ export default function UserTable({
           refetch={refetch}
         />
       )}
+
+      <Dialog
+        open={Boolean(roleDialogUser)}
+        onOpenChange={(open) => {
+          if (!open) setRoleDialogUser(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign roles</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {roleDialogUser?.email}
+            </p>
+            <div className="grid gap-2">
+              {roles.map((role) => (
+                <label
+                  key={role.id}
+                  className="flex cursor-pointer items-center justify-between rounded-md border p-3"
+                >
+                  <span className="flex items-center gap-3">
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: role.color || "#4A7C2F" }}
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">
+                        {role.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {role.slug}
+                      </span>
+                    </span>
+                  </span>
+                  <Checkbox
+                    checked={selectedRoleIds.has(role.id)}
+                    onCheckedChange={(checked) =>
+                      toggleRole(role.id, Boolean(checked))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRoleDialogUser(null)}
+              disabled={roleSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="custom"
+              onClick={saveUserRoles}
+              loading={roleSaving}
+            >
+              Save roles
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

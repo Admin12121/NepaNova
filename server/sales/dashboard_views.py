@@ -5,10 +5,10 @@ from django.db.models import Avg, Count, F, Sum
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from account.rbac import HasRbacPermission
 from account.models import SiteViewLog, User
 from product.models import Category, Product, ProductVariant, Review
 from sales.models import Saled_Products, Sales
@@ -21,7 +21,8 @@ class DashboardStatsView(APIView):
     Supports date range filtering via start_date and end_date params
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "dashboard.view"
 
     def get(self, request):
         today = timezone.now().date()
@@ -153,7 +154,8 @@ class SalesChartView(APIView):
     - Sales by status for selected period
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "dashboard.view"
 
     def get(self, request):
         today = timezone.now().date()
@@ -242,7 +244,8 @@ class TopProductsView(APIView):
     Returns top selling products
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "dashboard.view"
 
     def get(self, request):
         limit = int(request.query_params.get("limit", 10))
@@ -280,7 +283,8 @@ class RecentOrdersView(APIView):
     Returns recent orders
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "orders.view"
 
     def get(self, request):
         limit = int(request.query_params.get("limit", 10))
@@ -314,7 +318,8 @@ class VisitorStatsView(APIView):
     Returns visitor/site view statistics
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "dashboard.view"
 
     def get(self, request):
         today = timezone.now().date()
@@ -372,7 +377,8 @@ class CategoryPerformanceView(APIView):
     Returns sales performance by category
     """
 
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [HasRbacPermission]
+    required_permission = "dashboard.view"
 
     def get(self, request):
         # Sales by category

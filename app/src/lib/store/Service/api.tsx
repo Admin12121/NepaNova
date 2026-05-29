@@ -104,9 +104,12 @@ export const userAuthapi = createApi({
     "VisitorStats",
     "CategoryPerformance",
     "TrendingProducts",
-    "PopularKeywords",
-    "Notifications",
-  ],
+	    "PopularKeywords",
+	    "Notifications",
+	    "Roles",
+	    "Permissions",
+	    "UserRoles",
+	  ],
   endpoints: (builder) => ({
     // ==================== AUTH & USER API ====================
 
@@ -207,20 +210,98 @@ export const userAuthapi = createApi({
       ],
     }),
 
-    updateUserState: builder.mutation({
-      query: ({ userId, state, token }) => ({
-        url: `api/accounts/admin-users/${userId}/update_state/`,
-        method: "PATCH",
-        body: { state },
+	    updateUserState: builder.mutation({
+	      query: ({ userId, state, token }) => ({
+	        url: `api/accounts/admin-users/${userId}/update_state/`,
+	        method: "PATCH",
+	        body: { state },
         headers: createHeaders(token),
       }),
       invalidatesTags: (_result: any, _error: any, arg: any) => [
         { type: "Users" as const, id: arg.userId },
-        { type: "Users" as const, id: "LIST" },
-      ],
-    }),
+	        { type: "Users" as const, id: "LIST" },
+	      ],
+	    }),
 
-    // ==================== PRODUCT API ====================
+	    getPermissions: builder.query({
+	      query: ({ token, search }) => ({
+	        url: `api/accounts/permissions/${buildQueryParams({ search, page_size: 100 })}`,
+	        method: "GET",
+	        headers: createHeaders(token),
+	      }),
+	      providesTags: [{ type: "Permissions", id: "LIST" }],
+	    }),
+
+	    getRoles: builder.query({
+	      query: ({ token, search }) => ({
+	        url: `api/accounts/roles/${buildQueryParams({ search, page_size: 100 })}`,
+	        method: "GET",
+	        headers: createHeaders(token),
+	      }),
+	      providesTags: (result: any) =>
+	        result?.results
+	          ? [
+	              ...result.results.map((role: any) => ({
+	                type: "Roles" as const,
+	                id: role.id,
+	              })),
+	              { type: "Roles" as const, id: "LIST" },
+	            ]
+	          : [{ type: "Roles" as const, id: "LIST" }],
+	    }),
+
+	    createRole: builder.mutation({
+	      query: ({ actualData, token }) => ({
+	        url: "api/accounts/roles/",
+	        method: "POST",
+	        body: actualData,
+	        headers: createHeaders(token),
+	      }),
+	      invalidatesTags: [{ type: "Roles", id: "LIST" }],
+	    }),
+
+	    updateRole: builder.mutation({
+	      query: ({ id, actualData, token }) => ({
+	        url: `api/accounts/roles/${id}/`,
+	        method: "PATCH",
+	        body: actualData,
+	        headers: createHeaders(token),
+	      }),
+	      invalidatesTags: (_result: any, _error: any, arg: any) => [
+	        { type: "Roles", id: arg.id },
+	        { type: "Roles", id: "LIST" },
+	        { type: "Users", id: "LIST" },
+	      ],
+	    }),
+
+	    deleteRole: builder.mutation({
+	      query: ({ id, token }) => ({
+	        url: `api/accounts/roles/${id}/`,
+	        method: "DELETE",
+	        headers: createHeaders(token),
+	      }),
+	      invalidatesTags: (_result: any, _error: any, arg: any) => [
+	        { type: "Roles", id: arg.id },
+	        { type: "Roles", id: "LIST" },
+	        { type: "Users", id: "LIST" },
+	      ],
+	    }),
+
+	    setUserRoles: builder.mutation({
+	      query: ({ userId, roleIds, token }) => ({
+	        url: `api/accounts/admin-users/${userId}/roles/`,
+	        method: "PATCH",
+	        body: { role_ids: roleIds },
+	        headers: createHeaders(token),
+	      }),
+	      invalidatesTags: (_result: any, _error: any, arg: any) => [
+	        { type: "Users" as const, id: arg.userId },
+	        { type: "Users" as const, id: "LIST" },
+	        { type: "Roles" as const, id: "LIST" },
+	      ],
+	    }),
+
+	    // ==================== PRODUCT API ====================
 
     productsRegistration: builder.mutation({
       query: ({ formData, token }) => {
@@ -1155,9 +1236,15 @@ export const {
   useUpdateUserProfileMutation,
   useChangeUserPasswordMutation,
   useRefreshTokenMutation,
-  useDeleteUserMutation,
-  useUpdateUserStateMutation,
-  // Products
+	  useDeleteUserMutation,
+	  useUpdateUserStateMutation,
+	  useGetPermissionsQuery,
+	  useGetRolesQuery,
+	  useCreateRoleMutation,
+	  useUpdateRoleMutation,
+	  useDeleteRoleMutation,
+	  useSetUserRolesMutation,
+	  // Products
   useProductsRegistrationMutation,
   useProductsUpdateMutation,
   useProductImageMutation,

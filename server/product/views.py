@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from account.models import SearchHistory, User
+from account.rbac import HasRbacPermission
 from account.utils import send_email
 from sales.models import Saled_Products
 from server.utils.encryption import encrypt_response
@@ -49,7 +50,11 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.is_staff
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.has_rbac_permission("products.manage")
+        )
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -1220,8 +1225,7 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
         data = request.data
         if (
             request.user.id != instance.user.id
-            and request.user.role != "Admin"
-            and request.user.role != "Staff"
+            and not request.user.has_rbac_permission("reviews.manage")
         ):
             return Response(
                 {"detail": "You are not authorized to update this review data."},
@@ -1247,7 +1251,7 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if request.user.role != "Admin" and request.user.role != "Staff":
+        if not request.user.has_rbac_permission("reviews.manage"):
             return Response(
                 {"detail": "You are not authorized to delete this review data."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -1269,8 +1273,7 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
         data = request.data
         if (
             request.user.id != instance.user.id
-            and request.user.role != "Admin"
-            and request.user.role != "Staff"
+            and not request.user.has_rbac_permission("reviews.manage")
         ):
             return Response(
                 {"detail": "You are not authorized to update this review data."},
@@ -1287,7 +1290,7 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
     def verify_review(self, request, *args, **kwargs):
         instance = self.get_object()
         data = {"verified": True}
-        if request.user.role != "Admin" and request.user.role != "Staff":
+        if not request.user.has_rbac_permission("reviews.manage"):
             return Response(
                 {"detail": "You are not authorized to verify this review data."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -1628,13 +1631,9 @@ class AddToCartViewSet(viewsets.ModelViewSet):
 
 
 class StocksView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasRbacPermission]
     pagination_class = StandardResultsSetPagination
-
-    def check_permissions(self, request):
-        super().check_permissions(request)
-        if not request.user.is_staff and not request.user.is_superuser:
-            self.permission_denied(request, message="Admin access required.")
+    required_permission = "products.view"
 
     def get(self, request, *args, **kwargs):
         low_stock_products = Product.objects.filter(
