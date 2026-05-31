@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db import OperationalError, ProgrammingError, transaction
+from django.db.models import Q
 
 from layout.utils import DEFAULT_STORE_SETTINGS
 
@@ -222,6 +223,23 @@ def seed_admin_user(roles):
     return user
 
 
+def seed_default_customer_roles(roles):
+    from .models import User, UserRole
+
+    customer_role = roles.get("customer")
+    if not customer_role:
+        return
+
+    users = (
+        User.objects.filter(is_admin=False, is_superuser=False)
+        .filter(Q(role__isnull=True) | Q(role="") | Q(role="User"))
+        .exclude(rbac_roles__role__is_default=True)
+        .distinct()
+    )
+    for user in users:
+        UserRole.objects.get_or_create(user=user, role=customer_role)
+
+
 def seed_default_layout():
     from layout.models import Layout
 
@@ -290,6 +308,7 @@ def seed_initial_data(sender=None, **kwargs):
         with transaction.atomic():
             roles = seed_rbac()
             seed_admin_user(roles)
+            seed_default_customer_roles(roles)
             seed_default_layout()
             seed_variant_attributes()
     except (OperationalError, ProgrammingError) as exc:

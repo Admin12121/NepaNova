@@ -8,7 +8,7 @@ import {
 import { Links } from "./links";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
-import Header from "./_components/header";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -17,12 +17,33 @@ interface ProvidersProps {
 }
 
 const Providers = ({ children, collapsed, layout }: ProvidersProps) => {
+  const { permissions, role } = useAuthUser();
+  const links = React.useMemo(() => {
+    const canAccess = (permission?: string) =>
+      !permission || role === "Admin" || permissions.includes(permission);
+
+    return Links.map((link) => {
+      const subLinks = link.subLinks?.filter((subLink) =>
+        canAccess(subLink.requiredPermission),
+      );
+      return { ...link, subLinks };
+    }).filter((link) => {
+      if (!canAccess(link.requiredPermission)) {
+        return Boolean(link.subLinks?.length);
+      }
+      if (link.subLinks && link.subLinks.length === 0) {
+        return false;
+      }
+      return true;
+    });
+  }, [permissions, role]);
+
   return (
     <Sidebar layout={layout} collapsed={collapsed}>
-      <SidebarContent container="!bg-transparent" links={Links}>
+      <SidebarContent container="!bg-transparent" links={links}>
         <SidebarHeader logo="/logo.png" label={siteConfig.name} />
       </SidebarContent>
-      <main className="h-svh p-2 w-full">
+      <main className="h-svh w-full">
         <div
           className={cn(
             "relative flex h-full flex-1 flex-col bg-white dark:bg-[#18181b]",
@@ -30,7 +51,6 @@ const Providers = ({ children, collapsed, layout }: ProvidersProps) => {
             "rounded-xl overflow-y-auto",
           )}
         >
-          <Header />
           {children}
         </div>
       </main>

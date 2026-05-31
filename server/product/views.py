@@ -1331,7 +1331,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
             user = self.request.user
             if not (
                 user.is_authenticated
-                and (user.role in ("Admin", "Staff") or user.is_superuser)
+                and (
+                    user.is_superuser
+                    or user.has_rbac_permission("reviews.manage")
+                )
             ):
                 from rest_framework.exceptions import PermissionDenied
 

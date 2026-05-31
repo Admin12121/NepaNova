@@ -196,6 +196,10 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def is_mutable(self):
+        return not self.is_system and not self.is_default
+
 
 class UserRole(models.Model):
     user = models.ForeignKey(

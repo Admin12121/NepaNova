@@ -11,6 +11,9 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     refreshToken?: string;
     expires?: number;
+    role?: string;
+    roles?: string[];
+    permissions?: string[];
   }
 }
 
@@ -19,6 +22,9 @@ declare module "next-auth" {
     accessToken?: string;
     refreshToken?: string;
     expires?: Date;
+    role?: string;
+    roles?: string[];
+    permissions?: string[];
   }
 }
 
@@ -125,14 +131,26 @@ export default {
         const userWithToken = user as UserWithToken;
         token.accessToken = userWithToken.token.access;
         token.refreshToken = userWithToken.token.refresh;
-        const decoded = decodeJwt(userWithToken.token.access);
+      }
+      if (token.accessToken) {
+        const decoded = decodeJwt(token.accessToken);
         token.expires = decoded.exp as number;
+        token.role = decoded.role as string | undefined;
+        token.roles = Array.isArray(decoded.roles)
+          ? (decoded.roles as string[])
+          : [];
+        token.permissions = Array.isArray(decoded.permissions)
+          ? (decoded.permissions as string[])
+          : [];
       }
       return token;
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
+      session.role = token.role;
+      session.roles = token.roles || [];
+      session.permissions = token.permissions || [];
       if (token.expires) {
         session.expires = new Date(token.expires * 1000);
       }

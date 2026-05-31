@@ -70,6 +70,24 @@ class CustomPagination(PageNumberPagination):
         )
 
 
+def assign_default_roles(user, assigned_by=None):
+    default_roles = Role.objects.filter(is_default=True)
+    for role in default_roles:
+        UserRole.objects.get_or_create(
+            user=user, role=role, defaults={"assigned_by": assigned_by}
+        )
+
+
+def with_required_default_roles(roles):
+    if any(not role.is_default for role in roles):
+        return roles
+
+    role_by_id = {role.id: role for role in roles}
+    for role in Role.objects.filter(is_default=True):
+        role_by_id.setdefault(role.id, role)
+    return list(role_by_id.values())
+
+
 class NewsLetterViewSet(viewsets.ModelViewSet):
     queryset = NewLetter.objects.all().order_by("-id")
     serializer_class = NewsLetterSerializer
@@ -138,7 +156,7 @@ class NewsLetterViewSet(viewsets.ModelViewSet):
         )
 
 
-class RbacPermissionViewSet(viewsets.ModelViewSet):
+class RbacPermissionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RbacPermission.objects.all().order_by("code")
     serializer_class = RbacPermissionSerializer
     renderer_classes = [UserRenderer]
@@ -150,7 +168,9 @@ class RbacPermissionViewSet(viewsets.ModelViewSet):
 
 
 class RoleViewSet(viewsets.ModelViewSet):
-    queryset = Role.objects.prefetch_related("permissions").all()
+    queryset = Role.objects.prefetch_related(
+        "permissions", "user_assignments__user"
+    ).all()
     serializer_class = RoleSerializer
     renderer_classes = [UserRenderer]
     permission_classes = [HasRbacPermission]
@@ -159,11 +179,33 @@ class RoleViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "slug"]
     ordering_fields = ["position", "name", "created_at"]
 
+    def _reject_immutable_role(self, role):
+        if role.is_mutable:
+            return None
+        return Response(
+            {"error": "System and default roles are read-only."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def update(self, request, *args, **kwargs):
+        role = self.get_object()
+        rejection = self._reject_immutable_role(role)
+        if rejection:
+            return rejection
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        role = self.get_object()
+        rejection = self._reject_immutable_role(role)
+        if rejection:
+            return rejection
+        return super().partial_update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         role = self.get_object()
-        if role.is_system:
+        if not role.is_mutable:
             return Response(
-                {"error": "System roles cannot be deleted."},
+                {"error": "System and default roles cannot be deleted."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
@@ -202,6 +244,18 @@ class UserRoleViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(assigned_by=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        assignment = self.get_object()
+        if (
+            assignment.role.is_default
+            and not assignment.user.rbac_roles.exclude(role__is_default=True).exists()
+        ):
+            return Response(
+                {"error": "The default customer role cannot be removed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("-id")
@@ -239,6 +293,7 @@ class UserViewSet(viewsets.ModelViewSet):
         # Auto-activate the user (no activation email needed)
         user.state = "active"
         user.save(update_fields=["state"])
+        assign_default_roles(user, assigned_by=user)
 
         try:
             # Send welcome email
@@ -313,6 +368,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 if created:
                     user.set_password(password)
                     user.save(update_fields=["password"])
+                    assign_default_roles(user, assigned_by=user)
                     if avatar_url:
                         self._save_user_avatar(user, avatar_url, username)
                     # Fixed: was a tuple bug (trailing comma made it a tuple)
@@ -641,7 +697,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": "No users found"}, status=status.HTTP_404_NOT_FOUND
             )
-        allowed_fields = ["role", "state"]
+        allowed_fields = ["state"]
         update_kwargs = {k: v for k, v in update_data.items() if k in allowed_fields}
         if update_kwargs:
             users.update(**update_kwargs)
@@ -707,11 +763,8 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     def update_state(self, request, pk=None):
         user = self.get_object()
         state = request.data.get("state")
-        role = request.data.get("role")
         if state:
             user.state = state
-        if role:
-            user.role = role
         user.save()
         serializer = self.get_serializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -728,6 +781,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
                 {"error": "One or more roles do not exist."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        roles = with_required_default_roles(roles)
 
         with transaction.atomic():
             UserRole.objects.filter(user=user).exclude(role__in=roles).delete()

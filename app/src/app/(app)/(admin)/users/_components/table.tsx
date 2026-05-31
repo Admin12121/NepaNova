@@ -113,6 +113,8 @@ interface Role {
   slug: string;
   color: string;
   is_system: boolean;
+  is_default: boolean;
+  is_mutable: boolean;
 }
 
 interface ApiResponse {
@@ -232,17 +234,28 @@ export default function UserTable({
 
   const openRoleDialog = (user: Users) => {
     const currentRoles = new Set(user.roles || []);
-    setSelectedRoleIds(
-      new Set(
-        roles
-          .filter((role) => currentRoles.has(role.slug))
-          .map((role) => role.id),
-      ),
+    const nextRoleIds = new Set(
+      roles
+        .filter((role) => currentRoles.has(role.slug))
+        .map((role) => role.id),
     );
+    const hasNonDefaultRole = roles.some(
+      (role) => !role.is_default && nextRoleIds.has(role.id),
+    );
+    if (!hasNonDefaultRole) {
+      roles
+        .filter((role) => role.is_default)
+        .forEach((role) => nextRoleIds.add(role.id));
+    }
+    setSelectedRoleIds(nextRoleIds);
     setRoleDialogUser(user);
   };
 
   const toggleRole = (roleId: number, checked: boolean) => {
+    const role = roles.find((item) => item.id === roleId);
+    if (role?.is_default) {
+      return;
+    }
     setSelectedRoleIds((current) => {
       const next = new Set(current);
       if (checked) {
@@ -882,11 +895,12 @@ export default function UserTable({
                       </span>
                     </span>
                   </span>
-                  <Checkbox
-                    checked={selectedRoleIds.has(role.id)}
-                    onCheckedChange={(checked) =>
-                      toggleRole(role.id, Boolean(checked))
-                    }
+	                  <Checkbox
+	                    checked={selectedRoleIds.has(role.id)}
+	                    disabled={role.is_default}
+	                    onCheckedChange={(checked) =>
+	                      toggleRole(role.id, Boolean(checked))
+	                    }
                   />
                 </label>
               ))}

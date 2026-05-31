@@ -111,9 +111,26 @@ class RbacPermissionSerializer(serializers.ModelSerializer):
         model = RbacPermission
         fields = '__all__'
 
+class RoleMemberSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'name', 'state', 'roles']
+
+    def get_name(self, obj):
+        full_name = f"{obj.first_name} {obj.last_name}".strip()
+        return full_name or obj.username or obj.email
+
+    def get_roles(self, obj):
+        return list(obj.get_role_slugs())
+
 class RoleSerializer(serializers.ModelSerializer):
     permission_codes = serializers.SerializerMethodField()
     user_count = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
+    is_mutable = serializers.BooleanField(read_only=True)
     permissions = serializers.PrimaryKeyRelatedField(
         queryset=RbacPermission.objects.all(), many=True, required=False
     )
@@ -122,15 +139,28 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = [
             'id', 'name', 'slug', 'color', 'position', 'is_default', 'is_system',
-            'permissions', 'permission_codes', 'user_count', 'created_at', 'updated_at'
+            'is_mutable', 'permissions', 'permission_codes', 'user_count', 'members',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['slug', 'is_default', 'is_system', 'created_at', 'updated_at']
+        read_only_fields = [
+            'slug', 'is_default', 'is_system', 'is_mutable', 'members',
+            'created_at', 'updated_at'
+        ]
 
     def get_permission_codes(self, obj):
         return list(obj.permissions.values_list('code', flat=True))
 
     def get_user_count(self, obj):
         return obj.user_assignments.count()
+
+    def get_members(self, obj):
+        users = [
+            assignment.user
+            for assignment in obj.user_assignments.select_related('user').order_by(
+                'user__email'
+            )
+        ]
+        return RoleMemberSerializer(users, many=True).data
 
 class UserRoleSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)

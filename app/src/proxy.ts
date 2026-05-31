@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { decodeJwt } from "jose";
 import {
   Default_Login_Redirect,
+  adminRoutePermissions,
   adminRoutes,
   authRoutes,
   publicRoutes,
@@ -32,9 +33,19 @@ export default auth((req, ctx) => {
 
     if (matchRoute(adminRoutes)) {
       const token = req.auth?.accessToken || "";
-      const { role } = decodeJwt(token);
+      const { permissions, role } = decodeJwt(token) as {
+        permissions?: string[];
+        role?: string;
+      };
+      const requiredPermission = adminRoutePermissions.find(({ route }) =>
+        new RegExp(`^${route.replace(/\(.*\)/g, ".*")}$`).test(nextUrl.pathname)
+      )?.permission;
 
-      if (role !== "Admin") {
+      if (
+        requiredPermission &&
+        role !== "Admin" &&
+        !permissions?.includes(requiredPermission)
+      ) {
         return NextResponse.redirect(new URL("/", req.url));
       }
     }
