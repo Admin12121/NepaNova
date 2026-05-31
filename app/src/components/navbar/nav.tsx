@@ -20,7 +20,7 @@ export function SiteHeader({ children }: { children: React.ReactNode }) {
   return (
     <>
       <SiteBanner />
-      <header className="sticky flex justify-center top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-none border-0">
+      <header className="sticky flex justify-center top-0 z-50 w-full bg-background/95 backdrop-blur-[20px] supports-[backdrop-filter]:bg-background/60 border-none border-0">
         <nav className="max-w-[95rem] flex h-16 items-center px-2 md:px-4 w-full">
           <MainNav />
           <div className="hidden md:flex flex-1 items-center justify-end gap-2 md:justify-end">
