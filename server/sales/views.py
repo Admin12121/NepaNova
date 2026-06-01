@@ -132,6 +132,8 @@ class SalesViewSet(viewsets.ModelViewSet):
             "cancel_shipment",
             "sync_shipment",
             "shipment_detail",
+            "pickdrop_payload",
+            "pack_with_pickdrop",
         ]:
             return [HasRbacPermission("orders.manage")]
         if self.action == "destroy":
@@ -450,6 +452,16 @@ class SalesViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = self.get_object()
         old_status = instance.status
+        requested_status = serializer.validated_data.get("status")
+        if old_status == "proceed" and requested_status == "packed":
+            raise serializers.ValidationError(
+                {
+                    "status": (
+                        "Use the Pick & Drop packing action to move an order "
+                        "from proceed to packed."
+                    )
+                }
+            )
         old_date = instance.expected_delivery_date
         updated_instance = serializer.save()
 
@@ -486,25 +498,8 @@ class SalesViewSet(viewsets.ModelViewSet):
                     f"{updated_instance.transactionuid}: {e}"
                 )
 
-        # Queue Pick & Drop only when a verified order is moved into shipping.
-        if old_status == "verified" and new_status == "proceed":
-            def queue_pickdrop_shipment():
-                try:
-                    pickdrop.queue_shipment_for_sale(updated_instance)
-                except pickdrop.PickDropConfigurationError as e:
-                    logger.warning(
-                        "Pick & Drop shipment queue skipped for %s: %s",
-                        updated_instance.transactionuid,
-                        e,
-                    )
-                except pickdrop.PickDropError as e:
-                    logger.error(
-                        "Pick & Drop shipment queue failed for %s: %s",
-                        updated_instance.transactionuid,
-                        e,
-                    )
-
-            transaction.on_commit(queue_pickdrop_shipment)
+        # Pick & Drop is booked explicitly in the proceed -> packed action so
+        # admins can confirm package and destination details before API submission.
 
     def _send_review_invitation_email(self, sale):
         return send_review_invitation_email_for_sale(sale)
@@ -599,23 +594,69 @@ class SalesViewSet(viewsets.ModelViewSet):
             )
         return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["get"], url_path="pickdrop-payload")
+    def pickdrop_payload(self, request, pk=None):
+        sale = self.get_object()
+        try:
+            payload = pickdrop.build_order_payload(sale, validate=False)
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="pack-with-pickdrop")
+    def pack_with_pickdrop(self, request, pk=None):
+        sale = self.get_object()
+        try:
+            shipment = pickdrop.book_shipment_and_pack_sale(
+                sale, payload_overrides=request.data
+            )
+        except pickdrop.PickDropError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        sale.refresh_from_db()
+        return Response(
+            {
+                "status": sale.status,
+                "shipment": ShipmentSerializer(shipment).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=["post"], url_path="create-shipment")
     def create_shipment(self, request, pk=None):
         sale = self.get_object()
         try:
-            shipment = pickdrop.create_shipment_for_sale(sale)
+            shipment = pickdrop.book_shipment_and_pack_sale(
+                sale, payload_overrides=request.data
+            )
         except pickdrop.PickDropError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+        sale.refresh_from_db()
+        return Response(
+            {
+                "status": sale.status,
+                "shipment": ShipmentSerializer(shipment).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"], url_path="retry-shipment")
     def retry_shipment(self, request, pk=None):
         sale = self.get_object()
         try:
-            shipment = pickdrop.create_shipment_for_sale(sale, force=True)
+            shipment = pickdrop.book_shipment_and_pack_sale(
+                sale, payload_overrides=request.data, force=True
+            )
         except pickdrop.PickDropError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(ShipmentSerializer(shipment).data, status=status.HTTP_200_OK)
+        sale.refresh_from_db()
+        return Response(
+            {
+                "status": sale.status,
+                "shipment": ShipmentSerializer(shipment).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"], url_path="sync-shipment")
     def sync_shipment(self, request, pk=None):

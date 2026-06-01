@@ -1044,6 +1044,33 @@ export const userAuthapi = createApi({
       ],
     }),
 
+    getPickdropPayload: builder.query({
+      query: ({ id, token }) => ({
+        url: `api/sales/sales/${id}/pickdrop-payload/`,
+        method: "GET",
+        headers: createHeaders(token),
+      }),
+      providesTags: (_result: any, _error: any, arg: any) => [
+        { type: "OrderDetail" as const, id: arg.id },
+      ],
+    }),
+
+    packWithPickdrop: builder.mutation({
+      query: ({ id, actualData, token }) => ({
+        url: `api/sales/sales/${id}/pack-with-pickdrop/`,
+        method: "POST",
+        body: actualData,
+        headers: createHeaders(token),
+      }),
+      invalidatesTags: (_result: any, _error: any, arg: any) => [
+        { type: "Orders", id: arg.id },
+        { type: "Orders", id: "LIST" },
+        { type: "OrderDetail", id: arg.id },
+        { type: "DashboardStats", id: "LIST" },
+        { type: "RecentOrders", id: "LIST" },
+      ],
+    }),
+
     deleteSale: builder.mutation({
       query: ({ id, token }) => ({
         url: `api/sales/sales/${id}/`,
@@ -1300,6 +1327,8 @@ export const {
   useGetOrdersQuery,
   useGetStocksQuery,
   useUpdateSaleMutation,
+  useLazyGetPickdropPayloadQuery,
+  usePackWithPickdropMutation,
   useDeleteSaleMutation,
   useSalesRetrieveQuery,
   // Shipping

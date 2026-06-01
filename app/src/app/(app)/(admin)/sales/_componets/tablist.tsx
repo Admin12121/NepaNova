@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PickDropPackDialog } from "./pickdrop-pack-dialog";
 
 interface CartItem {
   id: number;
@@ -64,11 +65,13 @@ export interface Order {
 }
 
 const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
-  const { accessToken } = useAuthUser();
+  const { accessToken, hasPermission, role } = useAuthUser();
+  const canManageOrders = role === "Admin" || hasPermission("orders.manage");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [sales, setSales] = useState<Order[]>([]);
+  const [packDialogOrder, setPackDialogOrder] = useState<Order | null>(null);
   const [updateSale] = useUpdateSaleMutation();
   const [deleteSale] = useDeleteSaleMutation();
   const isActionInProgressRef = useRef(false);
@@ -115,9 +118,37 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
     setPage(1);
   };
 
-  const handleUpdateSale = async (id: number, status: string) => {
+  const openPackDialog = (order: Order) => {
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
+    if (order.status !== "proceed") {
+      toast.error("Order must be in proceed status before packing", {
+        position: "top-center",
+      });
+      return;
+    }
+    setPackDialogOrder(order);
+  };
+
+  const handleUpdateSale = async (order: Order, status: string) => {
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
+    if (status === "packed") {
+      openPackDialog(order);
+      return;
+    }
+
     if (isActionInProgressRef.current) return;
     isActionInProgressRef.current = true;
+    const id = order.id;
 
     const toastId = toast.loading(
       `Updating status for order ${id} to ${status}`,
@@ -154,6 +185,13 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
   };
 
   const handleDeleteSale = async (id: number) => {
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
+
     if (isActionInProgressRef.current) return;
     isActionInProgressRef.current = true;
 
@@ -218,6 +256,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             hasMore={hasMore}
             loading={loading}
             storeSettings={storeSettings}
+            canManageOrders={canManageOrders}
           />
         </TabsContent>
         <TabsContent value="onshipping" className="w-full h-full">
@@ -229,6 +268,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             hasMore={hasMore}
             loading={loading}
             storeSettings={storeSettings}
+            canManageOrders={canManageOrders}
           />
         </TabsContent>
         <TabsContent value="arrived" className="w-full h-full">
@@ -240,6 +280,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             hasMore={hasMore}
             loading={loading}
             storeSettings={storeSettings}
+            canManageOrders={canManageOrders}
           />
         </TabsContent>
         <TabsContent value="delivered" className="w-full h-full">
@@ -251,6 +292,7 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             hasMore={hasMore}
             loading={loading}
             storeSettings={storeSettings}
+            canManageOrders={canManageOrders}
           />
         </TabsContent>
         <TabsContent value="canceled" className="w-full h-full">
@@ -262,9 +304,29 @@ const Orders = ({ deferredSearch }: { deferredSearch?: string }) => {
             hasMore={hasMore}
             loading={loading}
             storeSettings={storeSettings}
+            canManageOrders={canManageOrders}
           />
         </TabsContent>
       </Tabs>
+      <PickDropPackDialog
+        order={packDialogOrder}
+        open={Boolean(packDialogOrder)}
+        onOpenChange={(open) => {
+          if (!open) setPackDialogOrder(null);
+        }}
+        accessToken={accessToken}
+        onPacked={() => {
+          setSales((current) =>
+            current.map((order) =>
+              order.id === packDialogOrder?.id
+                ? { ...order, status: "packed" }
+                : order,
+            ),
+          );
+          setPackDialogOrder(null);
+          refetch();
+        }}
+      />
     </section>
   );
 };
@@ -302,14 +364,16 @@ const OrderComponent = ({
   hasMore,
   loading,
   storeSettings,
+  canManageOrders,
 }: {
   data: Order[];
-  handleUpdateSale: (id: number, status: string) => Promise<void>;
+  handleUpdateSale: (order: Order, status: string) => Promise<void>;
   handleDeleteSale: (id: number) => Promise<void>;
   loadMore: any;
   hasMore: boolean;
   loading: boolean;
   storeSettings: StoreSettings;
+  canManageOrders: boolean;
 }) => {
   // Only show full-page spinner on initial load (when no data exists yet)
   if (loading && data.length === 0) {
@@ -340,6 +404,7 @@ const OrderComponent = ({
                   handleUpdateSale={handleUpdateSale}
                   handleDeleteSale={handleDeleteSale}
                   storeSettings={storeSettings}
+                  canManageOrders={canManageOrders}
                 />
               </AccordionItem>
             ))}
@@ -368,11 +433,13 @@ const OrderDetails = ({
   handleUpdateSale,
   handleDeleteSale,
   storeSettings,
+  canManageOrders,
 }: {
   order: Order;
-  handleUpdateSale: (id: number, status: string) => Promise<void>;
+  handleUpdateSale: (order: Order, status: string) => Promise<void>;
   handleDeleteSale: (id: number) => Promise<void>;
   storeSettings: StoreSettings;
+  canManageOrders: boolean;
 }) => {
   const router = useRouter();
   const truncateText = useCallback(
@@ -419,92 +486,95 @@ const OrderDetails = ({
           </TooltipProvider>
           <div className="flex items-center gap-2 justify-center">
             {renderBadge(order.status)}
-            <AlertDialog>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer p-2 rounded-lg hover:bg-muted"
-                  >
-                    <EllipsisIcon size={16} aria-hidden="true" />
-                  </span>
-                </DropdownMenuTrigger>
-                {(() => {
-                  const statusFlow = [
-                    "unpaid",
-                    "pending",
-                    "verified",
-                    "proceed",
-                    "packed",
-                    "delivered",
-                    "successful",
-                  ];
+            {canManageOrders && (
+              <AlertDialog>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer p-2 rounded-lg hover:bg-muted"
+                    >
+                      <EllipsisIcon size={16} aria-hidden="true" />
+                    </span>
+                  </DropdownMenuTrigger>
+                  {(() => {
+                    const statusFlow = [
+                      "unpaid",
+                      "pending",
+                      "verified",
+                      "proceed",
+                      "packed",
+                      "delivered",
+                      "successful",
+                    ];
 
-                  const isCancelledOrUnpaid = ["cancelled", "unpaid"].includes(
-                    order.status,
-                  );
-                  const currentIndex = statusFlow.indexOf(order.status);
+                    const isCancelledOrUnpaid = [
+                      "cancelled",
+                      "unpaid",
+                    ].includes(order.status);
+                    const currentIndex = statusFlow.indexOf(order.status);
 
-                  if (order.status === "successful") return null;
+                    if (order.status === "successful") return null;
 
-                  const isInitialPhase = currentIndex <= 2;
-                  const statusOptions = isCancelledOrUnpaid
-                    ? []
-                    : isInitialPhase
-                      ? ["unpaid", "pending", "verified", "cancelled"].filter(
-                          (s) => s !== order.status,
-                        )
-                      : statusFlow.slice(currentIndex + 1);
+                    const statusOptions =
+                      order.status === "pending"
+                        ? ["unpaid", "verified", "cancelled"]
+                        : order.status === "verified"
+                          ? ["pending", "proceed", "cancelled"]
+                          : isCancelledOrUnpaid
+                            ? []
+                            : statusFlow.slice(currentIndex + 1);
 
-                  const getStatusLabel = (s: string) =>
-                    s.charAt(0).toUpperCase() + s.slice(1);
+                    const getStatusLabel = (s: string) =>
+                      s.charAt(0).toUpperCase() + s.slice(1);
 
-                  return (
-                    <DropdownMenuContent>
-                      {statusOptions.map((status) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => handleUpdateSale(order.id, status)}
-                        >
-                          {getStatusLabel(status)}
-                        </DropdownMenuItem>
-                      ))}
-                      {isCancelledOrUnpaid && (
-                        <>
-                          {statusOptions.length > 0 && (
-                            <DropdownMenuSeparator />
-                          )}
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
-                              Delete Order
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  );
-                })()}
-              </DropdownMenu>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete order #{order.transactionuid}.
-                    This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-red-600 hover:bg-red-700"
-                    onClick={() => handleDeleteSale(order.id)}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    return (
+                      <DropdownMenuContent>
+                        {statusOptions.map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleUpdateSale(order, status)}
+                          >
+                            {getStatusLabel(status)}
+                          </DropdownMenuItem>
+                        ))}
+                        {isCancelledOrUnpaid && (
+                          <>
+                            {statusOptions.length > 0 && (
+                              <DropdownMenuSeparator />
+                            )}
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                                Delete Order
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    );
+                  })()}
+                </DropdownMenu>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete order #{order.transactionuid}.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={() => handleDeleteSale(order.id)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
         <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">

@@ -43,7 +43,7 @@ export default function SalesManagementKanban() {
   }, [tab]);
 
   return (
-    <main className="w-full h-full min-h-[calc(100dvh_-_145px)] flex px-2 flex-col gap-2">
+    <main className="w-full h-full min-h-[calc(100dvh_-_145px)] flex p-2 flex-col gap-2">
       <span className="flex items-start justify-between gap-2 flex-col md:flex-row">
         <h1 className="text-2xl">Sales</h1>
         <div className="flex items-center gap-2">

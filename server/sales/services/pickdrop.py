@@ -139,12 +139,97 @@ def default_dimensions():
     }
 
 
-def build_order_payload(sale):
+def _clean_text(value):
+    return str(value or "").strip()
+
+
+def _positive_number(value, field_name):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise PickDropAPIError(f"{field_name} must be a positive number.") from exc
+    if parsed <= 0:
+        raise PickDropAPIError(f"{field_name} must be a positive number.")
+    return parsed
+
+
+def _normalize_dim_weight(value):
+    if not isinstance(value, dict):
+        return None
+
+    has_any_value = any(
+        value.get(field) not in (None, "") for field in ("length", "width", "height")
+    )
+    if not has_any_value:
+        return None
+
+    return {
+        "length": _positive_number(value.get("length"), "Package length"),
+        "width": _positive_number(value.get("width"), "Package width"),
+        "height": _positive_number(value.get("height"), "Package height"),
+        "unit": _clean_text(value.get("unit")) or "cm",
+    }
+
+
+def _apply_payload_overrides(payload, overrides):
+    overrides = overrides or {}
+    allowed_fields = {
+        "orderDescription",
+        "customerName",
+        "landmark",
+        "primaryMobileNo",
+        "destinationBranch",
+        "destinationCityArea",
+        "weight",
+        "orderType",
+        "instruction",
+        "ref",
+        "businessAddress",
+    }
+
+    for field in allowed_fields:
+        if field in overrides:
+            payload[field] = overrides.get(field)
+
+    if "dimWeight" in overrides:
+        dim_weight = _normalize_dim_weight(overrides.get("dimWeight"))
+        if dim_weight:
+            payload["dimWeight"] = dim_weight
+        else:
+            payload.pop("dimWeight", None)
+
+    return payload
+
+
+def _validate_order_payload(payload):
+    required_fields = [
+        "businessAddress",
+        "customerName",
+        "landmark",
+        "primaryMobileNo",
+        "destinationBranch",
+        "destinationCityArea",
+        "weight",
+        "orderType",
+        "orderDescription",
+    ]
+    missing = [field for field in required_fields if _clean_text(payload.get(field)) == ""]
+    if missing:
+        labels = ", ".join(missing)
+        raise PickDropAPIError(f"Pick & Drop payload is missing: {labels}.")
+
+    payload["primaryMobileNo"] = normalize_phone(payload.get("primaryMobileNo"))
+    payload["weight"] = _positive_number(payload.get("weight"), "Package weight")
+    if "dimWeight" in payload:
+        payload["dimWeight"] = _normalize_dim_weight(payload.get("dimWeight"))
+
+
+def build_order_payload(sale, overrides=None, *, validate=True):
     shipping = sale.shipping
     if not shipping:
         raise PickDropAPIError("Order has no shipping address.")
 
-    customer_phone = normalize_phone(shipping.phone)
+    customer_phone = shipping.phone or ""
     destination_branch = (
         getattr(settings, "PICKDROP_DEFAULT_DESTINATION_BRANCH", "") or shipping.city
     )
@@ -177,6 +262,13 @@ def build_order_payload(sale):
     dim_weight = default_dimensions()
     if dim_weight:
         payload["dimWeight"] = dim_weight
+
+    payload = _apply_payload_overrides(payload, overrides)
+    payload["vendorTrackingNumber"] = sale.transactionuid
+    payload["codAmount"] = float(money_to_decimal(sale.total_amt))
+
+    if validate:
+        _validate_order_payload(payload)
 
     return payload
 
@@ -387,7 +479,7 @@ def queue_shipment_for_sale(sale, *, force=False):
     return shipment
 
 
-def process_shipment(shipment, *, force=False):
+def process_shipment(shipment, *, force=False, payload_overrides=None):
     if not pickdrop_enabled():
         raise PickDropConfigurationError("Pick & Drop integration is disabled.")
 
@@ -424,7 +516,7 @@ def process_shipment(shipment, *, force=False):
 
     sale = shipment.sale
 
-    request_payload = build_order_payload(sale)
+    request_payload = build_order_payload(sale, payload_overrides)
     client = PickDropClient()
 
     try:
@@ -489,9 +581,26 @@ def process_shipment(shipment, *, force=False):
         raise
 
 
-def create_shipment_for_sale(sale, *, force=False):
+def create_shipment_for_sale(sale, *, force=False, payload_overrides=None):
     shipment = queue_shipment_for_sale(sale, force=force)
-    return process_shipment(shipment, force=force)
+    return process_shipment(shipment, force=force, payload_overrides=payload_overrides)
+
+
+def book_shipment_and_pack_sale(sale, *, payload_overrides=None, force=False):
+    sale = Sales.objects.get(pk=sale.pk)
+    if sale.status not in {"proceed", "packed"}:
+        raise PickDropAPIError("Order must be in proceed status before packing.")
+
+    shipment = create_shipment_for_sale(
+        sale, force=force, payload_overrides=payload_overrides
+    )
+
+    sale.refresh_from_db()
+    if sale.status == "proceed":
+        sale.status = "packed"
+        sale.save(update_fields=["status", "updated_at"])
+
+    return shipment
 
 
 def process_pending_shipments(*, limit=20):

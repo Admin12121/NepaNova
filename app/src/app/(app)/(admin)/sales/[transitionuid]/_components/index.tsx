@@ -55,6 +55,7 @@ import {
   getStoreSettings,
   type StoreSettings,
 } from "@/lib/store-settings";
+import { PickDropPackDialog } from "../../_componets/pickdrop-pack-dialog";
 
 interface Product {
   id: string;
@@ -104,7 +105,8 @@ export interface Order {
 }
 
 const OrderRetrieve = ({ transactionuid }: { transactionuid: string }) => {
-  const { accessToken } = useAuthUser();
+  const { accessToken, hasPermission, role } = useAuthUser();
+  const canManageOrders = role === "Admin" || hasPermission("orders.manage");
   const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
   const storeSettings = useMemo(
     () => getStoreSettings(layoutData?.config),
@@ -129,6 +131,7 @@ const OrderRetrieve = ({ transactionuid }: { transactionuid: string }) => {
           token={accessToken}
           refetch={refetch}
           storeSettings={storeSettings}
+          canManageOrders={canManageOrders}
         />
       ) : null}
     </PageSkeleton>
@@ -140,11 +143,13 @@ const ProductCard = ({
   token,
   refetch,
   storeSettings,
+  canManageOrders,
 }: {
   data: Order;
   token?: string;
   refetch?: any;
   storeSettings: StoreSettings;
+  canManageOrders: boolean;
 }) => {
   const [updateSale] = useUpdateSaleMutation();
   const isUpdatingRef = useRef(false);
@@ -155,6 +160,7 @@ const ProductCard = ({
   const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
   const [delayReason, setDelayReason] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [packDialogOpen, setPackDialogOpen] = useState(false);
 
   const productIds = useMemo(() => {
     return data?.products.map((item: CartItem) => item.product);
@@ -216,6 +222,12 @@ const ProductCard = ({
 
   // Step 1: User picks a date from the calendar → open confirmation dialog
   const handleDateSelect = (date: Date | undefined) => {
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
     if (!date) return;
     setPendingDate(date);
     setDelayReason("");
@@ -226,6 +238,12 @@ const ProductCard = ({
   // Step 2: User confirms the date change in the dialog (with optional reason)
   const confirmDateUpdate = async () => {
     if (!pendingDate) return;
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
     if (isUpdatingRef.current) return;
     isUpdatingRef.current = true;
     setIsUpdating(true);
@@ -276,6 +294,23 @@ const ProductCard = ({
   };
 
   const handleUpdateSale = async (id: number, status: string) => {
+    if (!canManageOrders) {
+      toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
+    if (status === "packed") {
+      if (data.status !== "proceed") {
+        toast.error("Order must be in proceed status before packing", {
+          position: "top-center",
+        });
+        return;
+      }
+      setPackDialogOpen(true);
+      return;
+    }
+
     if (isUpdatingRef.current) return;
     isUpdatingRef.current = true;
     setIsUpdating(true);
@@ -335,55 +370,66 @@ const ProductCard = ({
             </h1>
             <span className="gap-2 flex items-center">
               {renderBadge(data?.status)}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="shadow-none"
-                    aria-label="Open edit menu"
-                    disabled={isUpdating}
-                  >
-                    <EllipsisIcon size={16} aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
-                {(data.status == "pending" ||
-                  data.status == "unpaid" ||
-                  data.status == "verified") && (
-                  <DropdownMenuContent>
-                    {data.status != "pending" && (
-                      <DropdownMenuItem
+              {canManageOrders &&
+                !["successful", "cancelled", "unpaid"].includes(data.status) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="shadow-none"
+                        aria-label="Open edit menu"
                         disabled={isUpdating}
-                        onClick={() => handleUpdateSale(data.id, "pending")}
                       >
-                        Pending
-                      </DropdownMenuItem>
-                    )}
-                    {data.status != "unpaid" && (
-                      <DropdownMenuItem
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateSale(data.id, "unpaid")}
-                      >
-                        UnPaid
-                      </DropdownMenuItem>
-                    )}
-                    {data.status != "verified" && (
-                      <DropdownMenuItem
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateSale(data.id, "verified")}
-                      >
-                        Verified
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateSale(data.id, "cancelled")}
-                    >
-                      Cancelled
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
+                        <EllipsisIcon size={16} aria-hidden="true" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    {(() => {
+                      const statusFlow = [
+                        "unpaid",
+                        "pending",
+                        "verified",
+                        "proceed",
+                        "packed",
+                        "delivered",
+                        "successful",
+                      ];
+                      const isCancelledOrUnpaid = [
+                        "cancelled",
+                        "unpaid",
+                      ].includes(data.status);
+                      const currentIndex = statusFlow.indexOf(data.status);
+
+                      if (data.status === "successful") return null;
+
+                      const statusOptions =
+                        data.status === "pending"
+                          ? ["unpaid", "verified", "cancelled"]
+                          : data.status === "verified"
+                            ? ["pending", "proceed", "cancelled"]
+                            : isCancelledOrUnpaid
+                              ? []
+                              : statusFlow.slice(currentIndex + 1);
+
+                      const getStatusLabel = (status: string) =>
+                        status.charAt(0).toUpperCase() + status.slice(1);
+
+                      return (
+                        <DropdownMenuContent>
+                          {statusOptions.map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              disabled={isUpdating}
+                              onClick={() => handleUpdateSale(data.id, status)}
+                            >
+                              {getStatusLabel(status)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      );
+                    })()}
+                  </DropdownMenu>
                 )}
-              </DropdownMenu>
             </span>
           </div>
           <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">
@@ -405,30 +451,32 @@ const ProductCard = ({
                         storeSettings.deliveryEstimateDays,
                       )}
                 </p>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      disabled={isUpdating}
-                    >
-                      <CalendarIcon className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[200]">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        data.expected_delivery_date
-                          ? new Date(data.expected_delivery_date)
-                          : undefined
-                      }
-                      onSelect={handleDateSelect}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                {canManageOrders && (
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={isUpdating}
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 z-[200]">
+                      <Calendar
+                        mode="single"
+                        selected={
+                          data.expected_delivery_date
+                            ? new Date(data.expected_delivery_date)
+                            : undefined
+                        }
+                        onSelect={handleDateSelect}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               </span>
               <RightIcon className="dark:fill-white/70 dark:stroke-white/70 stroke-neutral-700 hidden lg:flex" />
             </span>
@@ -526,6 +574,16 @@ const ProductCard = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PickDropPackDialog
+        order={data}
+        open={packDialogOpen}
+        onOpenChange={setPackDialogOpen}
+        accessToken={token}
+        onPacked={() => {
+          setPackDialogOpen(false);
+          if (refetch) refetch();
+        }}
+      />
     </>
   );
 };
