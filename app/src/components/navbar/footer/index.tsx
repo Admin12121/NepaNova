@@ -7,7 +7,7 @@ import Image from "next/image";
 
 const Footer = () => {
   return (
-    <Shell className="max-w-[95rem]">
+    <Shell variant="sidebar" className="max-w-[95rem] w-full p-4">
       <div className="flex gap-10 items-center lg:flex-row flex-col">
         <span className="flex flex-col gap-4 rounded-lg border border-primary/10 bg-primary/10 p-4 text-2xl lg:max-w-[443px] justify-between w-full">
           <div>

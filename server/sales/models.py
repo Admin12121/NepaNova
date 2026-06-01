@@ -23,7 +23,7 @@ class Redeem_Code(models.Model):
 
 class Sales(models.Model):
     costumer_name = models.ForeignKey(User, on_delete=models.SET_DEFAULT, default=None)
-    transactionuid = models.CharField(max_length=225, null=True, blank=True)
+    transactionuid = models.CharField(max_length=225, null=True, blank=True, unique=True)
     status = models.CharField(
         max_length=10,
         choices=[

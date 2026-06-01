@@ -281,7 +281,24 @@ class ProductByIdsSerializer(serializers.ModelSerializer):
 class ReviewWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = "__all__"
+        fields = ["id", "rating", "title", "content", "recommended", "delivery"]
+        read_only_fields = ["id"]
+
+
+class ReviewModerationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "verified",
+            "favoutare",
+            "rating",
+            "title",
+            "content",
+            "recommended",
+            "delivery",
+        ]
+        read_only_fields = ["id"]
 
 
 class ReviewImageWriteSerializer(serializers.ModelSerializer):

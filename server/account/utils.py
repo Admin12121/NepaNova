@@ -33,13 +33,46 @@ class TokenGenerator(PasswordResetTokenGenerator):
 generate_token = TokenGenerator()
 
 
-def send_email(subject, email, body):
+def _normalize_recipients(email):
+    if not email:
+        return []
     recipients = [email] if isinstance(email, str) else list(email)
+    return [recipient for recipient in recipients if recipient]
+
+
+def queue_email(subject, email, body, error_message=""):
+    recipients = _normalize_recipients(email)
+    if not recipients:
+        return False
+    try:
+        from account.models import EmailOutbox
+
+        EmailOutbox.objects.create(
+            subject=subject,
+            recipients=recipients,
+            body=body,
+            last_error=error_message,
+        )
+        return True
+    except Exception as ex:
+        logger.error("Failed to queue email to %s: %s", recipients, ex)
+        return False
+
+
+def send_email(subject, email, body, queue_on_failure=True):
+    recipients = _normalize_recipients(email)
     if not recipients:
         logger.warning("Email skipped because no recipients were provided.")
         return False
     if not settings.RESEND_API_KEY:
         logger.error("Email skipped because RESEND_API_KEY is not configured.")
+        if queue_on_failure:
+            queue_email(
+                subject,
+                recipients,
+                body,
+                "RESEND_API_KEY is not configured.",
+            )
         return False
 
     try:
@@ -55,6 +88,8 @@ def send_email(subject, email, body):
         return True
     except Exception as ex:
         logger.error("Resend error while sending email to %s: %s", recipients, ex)
+        if queue_on_failure:
+            queue_email(subject, recipients, body, str(ex))
 
     return False
 

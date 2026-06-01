@@ -1,9 +1,10 @@
 import logging
 import secrets
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -104,6 +105,7 @@ def get_invoice_details(sale, user_email):
 class SalesViewSet(viewsets.ModelViewSet):
     """Sales ViewSet with admin-only update/delete."""
 
+    ALLOWED_PAYMENT_METHODS = {"Cash On Delivery"}
     queryset = Sales.objects.all().order_by("-id")
     renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated]
@@ -139,7 +141,10 @@ class SalesViewSet(viewsets.ModelViewSet):
     @encrypt_response
     def retrieve(self, request, *args, **kwargs):
         transactionuid = kwargs.get("transactionuid")
-        instance = get_object_or_404(Sales, transactionuid=transactionuid)
+        if transactionuid:
+            instance = get_object_or_404(self.get_queryset(), transactionuid=transactionuid)
+        else:
+            instance = self.get_object()
         serializer = SalesDataSerializer(instance)
         return Response(serializer.data)
 
@@ -162,116 +167,283 @@ class SalesViewSet(viewsets.ModelViewSet):
             return queryset.filter(costumer_name=user)
         return queryset
 
+    def _parse_positive_int(self, value, field_name):
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError) as exc:
+            raise serializers.ValidationError(
+                {"error": f"{field_name} must be a positive integer."}
+            ) from exc
+        if parsed <= 0:
+            raise serializers.ValidationError(
+                {"error": f"{field_name} must be a positive integer."}
+            )
+        return parsed
+
+    def _money(self, value):
+        try:
+            return Decimal(str(value or 0)).quantize(Decimal("0.01"))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise serializers.ValidationError({"error": "Invalid money amount."}) from exc
+
+    def _get_redeem_id(self, redeem_data):
+        if not redeem_data:
+            return None
+        if isinstance(redeem_data, dict):
+            return redeem_data.get("id")
+        return redeem_data
+
+    def _prepare_order_items(self, invoice_data):
+        if not isinstance(invoice_data, list) or not invoice_data:
+            raise serializers.ValidationError(
+                {"error": "At least one product is required."}
+            )
+
+        items = []
+        for item in invoice_data:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError(
+                    {"error": "Invalid product payload."}
+                )
+            items.append(
+                {
+                    "product_id": self._parse_positive_int(
+                        item.get("product"), "product"
+                    ),
+                    "variant_id": self._parse_positive_int(
+                        item.get("variant"), "variant"
+                    ),
+                    "quantity": self._parse_positive_int(item.get("pcs"), "pcs"),
+                }
+            )
+        return items
+
+    def _variant_unit_price(self, variant):
+        price = self._money(variant.price)
+        discount = self._money(variant.discount or 0)
+        if discount < 0 or discount > 100:
+            raise serializers.ValidationError(
+                {"error": "Variant discount must be between 0 and 100."}
+            )
+        if discount:
+            price = price - ((price * discount) / Decimal("100"))
+        return price.quantize(Decimal("0.01"))
+
+    def _calculate_discount(self, redeem_code, subtotal):
+        if not redeem_code:
+            return Decimal("0.00")
+
+        minimum = self._money(redeem_code.minimum or 0)
+        if subtotal < minimum:
+            raise serializers.ValidationError(
+                {"error": "Minimum purchase amount not met for this redeem code."}
+            )
+
+        discount_value = self._money(redeem_code.discount or 0)
+        if redeem_code.type == "percentage":
+            if discount_value < 0 or discount_value > 100:
+                raise serializers.ValidationError(
+                    {"error": "Redeem code percentage must be between 0 and 100."}
+                )
+            discount = (subtotal * discount_value) / Decimal("100")
+        elif redeem_code.type == "amount":
+            discount = discount_value
+        else:
+            raise serializers.ValidationError({"error": "Invalid redeem code type."})
+
+        return min(discount.quantize(Decimal("0.01")), subtotal)
+
+    def _validate_redeem_code(self, redeem_code):
+        if redeem_code.is_active is False:
+            raise serializers.ValidationError({"error": "Redeem code is inactive."})
+        if redeem_code.valid_until and redeem_code.valid_until < timezone.now().date():
+            raise serializers.ValidationError({"error": "Redeem code is expired."})
+        if redeem_code.limit is not None and (redeem_code.used or 0) >= redeem_code.limit:
+            raise serializers.ValidationError(
+                {"error": "Redeem code usage limit reached."}
+            )
+
     def create(self, request, *args, **kwargs):
         """Override create instead of perform_create so we can return proper responses."""
         data = request.data
         invoice_data = data.get("products", [])
         user = request.user
 
-        # --- Idempotency check: reject duplicate transactionuid ---
         transactionuid = data.get("transactionuid")
         if not transactionuid:
             return Response(
                 {"error": "Transaction UID is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if Sales.objects.filter(transactionuid=transactionuid).exists():
+
+        payment_method = data.get("payment_method") or "Cash On Delivery"
+        if payment_method not in self.ALLOWED_PAYMENT_METHODS:
+            return Response(
+                {"error": "Unsupported payment method."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            shipping_id = self._parse_positive_int(data.get("shipping"), "shipping")
+            order_items = self._prepare_order_items(invoice_data)
+        except serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        redeem_id = self._get_redeem_id(data.get("redeemData"))
+        if redeem_id:
+            try:
+                redeem_id = self._parse_positive_int(redeem_id, "redeemData.id")
+            except serializers.ValidationError as exc:
+                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                if Sales.objects.select_for_update().filter(
+                    transactionuid=transactionuid
+                ).exists():
+                    return Response(
+                        {"error": "This order has already been placed."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                try:
+                    shipping_instance = DeliveryAddress.objects.select_for_update().get(
+                        id=shipping_id, user=user, is_deleted=False
+                    )
+                except DeliveryAddress.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"error": "Invalid shipping address."}
+                    )
+
+                redeem_code_obj = None
+                if redeem_id:
+                    try:
+                        redeem_code_obj = Redeem_Code.objects.select_for_update().get(
+                            id=redeem_id
+                        )
+                    except Redeem_Code.DoesNotExist:
+                        raise serializers.ValidationError(
+                            {"error": "Invalid redeem code."}
+                        )
+                    self._validate_redeem_code(redeem_code_obj)
+
+                variants = {
+                    variant.id: variant
+                    for variant in ProductVariant.objects.select_for_update()
+                    .select_related("product")
+                    .filter(id__in={item["variant_id"] for item in order_items})
+                }
+
+                line_items = []
+                requested_stock = {}
+                subtotal = Decimal("0.00")
+
+                for item in order_items:
+                    variant = variants.get(item["variant_id"])
+                    if not variant:
+                        raise serializers.ValidationError(
+                            {"error": "Invalid product variant."}
+                        )
+                    if variant.product_id != item["product_id"]:
+                        raise serializers.ValidationError(
+                            {"error": "Product and variant do not match."}
+                        )
+                    if variant.product.deactive:
+                        raise serializers.ValidationError(
+                            {"error": "This product is not available."}
+                        )
+
+                    quantity = item["quantity"]
+                    unit_price = self._variant_unit_price(variant)
+                    line_total = (unit_price * Decimal(quantity)).quantize(
+                        Decimal("0.01")
+                    )
+                    subtotal += line_total
+                    requested_stock[variant.id] = (
+                        requested_stock.get(variant.id, 0) + quantity
+                    )
+                    line_items.append(
+                        {
+                            "variant": variant,
+                            "product": variant.product,
+                            "quantity": quantity,
+                            "unit_price": unit_price,
+                            "line_total": line_total,
+                        }
+                    )
+
+                for variant_id, quantity in requested_stock.items():
+                    variant = variants[variant_id]
+                    if variant.stock < quantity:
+                        raise serializers.ValidationError(
+                            {
+                                "error": (
+                                    f"Not enough stock for {variant.product.product_name} "
+                                    f"({variant.size or variant.color_name or 'variant'})."
+                                )
+                            }
+                        )
+
+                discount = self._calculate_discount(redeem_code_obj, subtotal)
+                total = max(subtotal - discount, Decimal("0.00")).quantize(
+                    Decimal("0.01")
+                )
+
+                sale = Sales.objects.create(
+                    costumer_name=user,
+                    redeem_data=redeem_code_obj.name if redeem_code_obj else None,
+                    shipping=shipping_instance,
+                    discount=float(discount),
+                    sub_total=float(subtotal),
+                    total_amt=float(total),
+                    transactionuid=transactionuid,
+                    payment_method=payment_method,
+                    expected_delivery_date=timezone.now().date()
+                    + timedelta(days=get_delivery_estimate_days()),
+                )
+
+                for item in line_items:
+                    Saled_Products.objects.create(
+                        transition=sale,
+                        product=item["product"],
+                        variant=item["variant"],
+                        price=float(item["unit_price"]),
+                        qty=item["quantity"],
+                        total=float(item["line_total"]),
+                    )
+
+                for variant_id, quantity in requested_stock.items():
+                    variant = variants[variant_id]
+                    variant.stock -= quantity
+                    variant.save(update_fields=["stock"])
+
+                if redeem_code_obj:
+                    redeem_code_obj.used = (redeem_code_obj.used or 0) + 1
+                    redeem_code_obj.save(update_fields=["used"])
+        except serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
             return Response(
                 {"error": "This order has already been placed."},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # --- Validate shipping address before entering atomic block ---
-        try:
-            shipping_instance = DeliveryAddress.objects.get(id=data.get("shipping"))
-        except DeliveryAddress.DoesNotExist:
-            return Response(
-                {"error": "Invalid shipping address."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # --- Validate redeem code before entering atomic block ---
-        redeem_code_obj = None
-        redeem_data = data.get("redeemData")
-        if redeem_data:
-            try:
-                redeem_code_obj = Redeem_Code.objects.get(id=redeem_data["id"])
-                if redeem_code_obj.valid_until < timezone.now().date():
-                    return Response(
-                        {"error": "Redeem code is expired."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                if (
-                    redeem_code_obj.limit is not None
-                    and redeem_code_obj.used >= redeem_code_obj.limit
-                ):
-                    return Response(
-                        {"error": "Redeem code usage limit reached."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-            except Redeem_Code.DoesNotExist:
-                return Response(
-                    {"error": "Invalid redeem code."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # --- Atomic transaction: create sale, deduct stock, send invoice ---
-        with transaction.atomic():
-            if redeem_code_obj:
-                redeem_code_obj.used = (redeem_code_obj.used or 0) + 1
-                redeem_code_obj.save()
-
-            post_serializer = self.get_serializer(data=data)
-            post_serializer.is_valid(raise_exception=True)
-
-            sale = post_serializer.save(
-                costumer_name=user,
-                redeem_data=redeem_code_obj.name if redeem_code_obj else None,
-                shipping=shipping_instance,
-                discount=data.get("discount", 0),
-                sub_total=data.get("sub_total"),
-                total_amt=data.get("total_amt"),
-                transactionuid=data.get("transactionuid"),
-                payment_method=data.get("payment_method"),
-                expected_delivery_date=timezone.now().date()
-                + timedelta(days=get_delivery_estimate_days()),
-            )
-
-            for item in invoice_data:
-                product = get_object_or_404(Product, id=item["product"])
-                variant = get_object_or_404(ProductVariant, id=item["variant"])
-                quantity_sold = item["pcs"]
-
-                if variant.stock < quantity_sold:
-                    raise serializers.ValidationError(
-                        {
-                            "error": f"Not enough stock for {product.product_name} ({variant.size or variant.color_name})."
-                        }
-                    )
-
-                variant.stock -= quantity_sold
-                variant.save()
-
-                Saled_Products.objects.create(
-                    transition=sale,
-                    product=product,
-                    variant=variant,
-                    price=variant.price,
-                    qty=quantity_sold,
-                    total=variant.price * quantity_sold,
-                )
-
-        # --- Send invoice email (outside atomic so DB is committed) ---
+        email_sent = False
         try:
             context = get_invoice_details(sale, user.email)
             subject = f"Order Confirmation – #{sale.transactionuid}"
             body = render_to_string("invoice.html", context)
-            send_email(subject, user.email, body)
+            email_sent = send_email(subject, user.email, body)
         except Exception as e:
             logger.error(f"Failed to send invoice email for {sale.transactionuid}: {e}")
 
+        message = (
+            "Order created and invoice sent."
+            if email_sent
+            else "Order created. Invoice email has been queued for retry."
+        )
         return Response(
-            {"success": "Order created and invoice sent."},
+            {"success": message, "email_sent": email_sent},
             status=status.HTTP_201_CREATED,
         )
 
@@ -578,7 +750,12 @@ class RedeemCodeViewSet(viewsets.ModelViewSet):
         except Redeem_Code.DoesNotExist:
             return Response({"error": "Invalid code"}, status=status.HTTP_404_NOT_FOUND)
 
-        if redeem_code.valid_until < timezone.now().date():
+        if redeem_code.is_active is False:
+            return Response(
+                {"error": "Code is inactive"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if redeem_code.valid_until and redeem_code.valid_until < timezone.now().date():
             return Response(
                 {"error": "Code is expired"}, status=status.HTTP_400_BAD_REQUEST
             )

@@ -45,7 +45,7 @@ export function SiteHeader({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       {children}
-      <footer className="w-full">
+      <footer className="w-full flex flex-col items-center justify-center">
         <Footer />
         <div className="hidden lg:flex h-10 bottom-0 z-50 w-full border-t-1  dark:!border-neutral-900 justify-center items-center">
           <div className="max-w-[95rem] w-full h-full flex justify-between items-center px-5">

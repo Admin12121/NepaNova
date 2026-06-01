@@ -625,7 +625,7 @@ const ProductPage = ({ productslug }: { productslug: string }) => {
           <CardContent className="flex gap-5 w-full flex-col">
             <GlobalInput
               label="Product Name"
-              placeholder="buddha statue"
+              placeholder="Himalayan green tea"
               className="bg-white dark:bg-neutral-900"
               error={errors.productName?.message}
               type="text"

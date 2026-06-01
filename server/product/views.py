@@ -155,6 +155,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         variants_data = self._extract_variants_data(data)
         images_data = self._extract_images_data(data)
 
+        if is_multi_variant and not variants_data:
+            return Response(
+                {"error": "At least one variant is required for multi-variant products."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         with transaction.atomic():
             try:
                 product_serializer = self.get_serializer(data=data)
@@ -553,6 +559,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data
         is_multi_variant = data.get("is_multi_variant", "false").lower() == "true"
+        variants_data = self._extract_variants_data(data)
+        if is_multi_variant and not variants_data:
+            return Response(
+                {"error": "At least one variant is required for multi-variant products."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         instance.product_name = data.get("product_name", instance.product_name)
         instance.description = data.get("description", instance.description)
         instance.category_id = data.get("category", instance.category_id)
@@ -560,7 +572,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         instance.save()
 
         if is_multi_variant:
-            variants_data = self._extract_variants_data(data)
             self._update_variants(variants_data, instance)
         else:
             single_variant_data = {
@@ -587,8 +598,10 @@ class ProductViewSet(viewsets.ModelViewSet):
                 existing_variant.color_name = color_name
                 existing_variant.attributes = single_variant_data["attributes"]
                 existing_variant.save()
+                instance.productvariant_set.exclude(pk=existing_variant.pk).delete()
             else:
-                self._create_single_variant(single_variant_data, instance)
+                created_variant = self._create_single_variant(single_variant_data, instance)
+                instance.productvariant_set.exclude(pk=created_variant.pk).delete()
 
         return Response(
             {"msg": "Product updated successfully"}, status=status.HTTP_200_OK
@@ -756,7 +769,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         all_flag = request.query_params.get("all", "false").lower() == "true"
         if ids:
             ids_list = ids.split(",")
-            queryset = self.queryset.filter(id__in=ids_list)
+            queryset = self.get_queryset().filter(id__in=ids_list)
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = (
@@ -799,7 +812,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         all_flag = request.query_params.get("all", "false").lower() == "true"
         if ids:
             ids_list = ids.split(",")
-            queryset = self.queryset.filter(id__in=ids_list)
+            queryset = self.get_queryset().filter(id__in=ids_list)
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = (
@@ -1035,6 +1048,7 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        old_stock = instance.stock
         data = request.data
         if data.get("color_code") or data.get("color"):
             normalized_code, color_obj = self._ensure_color_reference(
@@ -1045,18 +1059,35 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             data["color"] = color_obj.color_code if color_obj else None
         else:
             data = data.copy()
+        if data.get("product"):
+            try:
+                requested_product_id = int(data.get("product"))
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": "Invalid product."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if requested_product_id != instance.product_id:
+                return Response(
+                    {"error": "A variant cannot be moved to another product."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         if self._has_attribute_payload(data):
             data["attributes"] = ProductViewSet()._extract_attributes(data)
         serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        updated_variant = serializer.save()
 
-        # Send restock notification emails with actual product data
-        notify_users = NotifyUser.objects.filter(variant=instance.id).select_related(
-            "product"
+        should_notify_restock = old_stock <= 0 and updated_variant.stock > 0
+        notify_users = (
+            NotifyUser.objects.filter(variant=updated_variant.id).select_related(
+                "product"
+            )
+            if should_notify_restock
+            else NotifyUser.objects.none()
         )
         if notify_users.exists():
-            product = instance.product
+            product = updated_variant.product
             product_image = None
             if product and product.images.exists():
                 first_img = product.images.first()
@@ -1077,9 +1108,15 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
             context = {
                 "product_name": product.product_name if product else "Your item",
                 "product_image": product_image,
-                "product_price": str(instance.price) if instance.price else None,
-                "variant_name": instance.size
-                or (instance.color_name if hasattr(instance, "color_name") else None),
+                "product_price": str(updated_variant.price)
+                if updated_variant.price
+                else None,
+                "variant_name": updated_variant.size
+                or (
+                    updated_variant.color_name
+                    if hasattr(updated_variant, "color_name")
+                    else None
+                ),
                 "product_url": product_url,
             }
 
@@ -1137,6 +1174,13 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewWriteSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_class(self):
+        if self.action in ["update", "partial_update", "update_reviews"] and (
+            self.request.user.has_rbac_permission("reviews.manage")
+        ):
+            return ReviewModerationSerializer
+        return ReviewWriteSerializer
+
     def _get_eligible_purchase_count(self, user, product):
         """
         Count distinct completed purchase transactions for this user+product.
@@ -1160,7 +1204,6 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
         # Build a plain dict from request data — avoid QueryDict.copy()
         # which deep-copies and chokes on unpicklable TemporaryUploadedFile handles
         data = {
-            "user": user.id,
             "rating": request.data.get("rating"),
             "title": request.data.get("title"),
             "content": request.data.get("content"),
@@ -1175,7 +1218,6 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        data["product"] = product.id
 
         eligible_purchases = self._get_eligible_purchase_count(user, product)
         if eligible_purchases == 0:
@@ -1198,7 +1240,7 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                review = serializer.save()
+                review = serializer.save(user=user, product=product)
                 image = request.FILES.get("image")
                 if image:
                     if hasattr(image, "seek"):
@@ -1231,17 +1273,19 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
                 {"detail": "You are not authorized to update this review data."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        serializer = self.get_serializer(instance, data=data)
+        serializer = self.get_serializer(
+            instance, data=data, partial=kwargs.get("partial", False)
+        )
         if serializer.is_valid(raise_exception=True):
             with transaction.atomic():
                 self.perform_update(serializer)
                 image = request.FILES.get("image")
                 if image:
                     try:
-                        review_image = ReviewImageWriteSerializer(
-                            review=instance, image=image
-                        )
-                        review_image.save()
+                        image_data = {"review": instance.id, "image": image}
+                        image_serializer = ReviewImageWriteSerializer(data=image_data)
+                        image_serializer.is_valid(raise_exception=True)
+                        image_serializer.save()
                     except Exception as e:
                         transaction.set_rollback(True)
                         raise e
@@ -1289,15 +1333,13 @@ class ReviewPostViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
     def verify_review(self, request, *args, **kwargs):
         instance = self.get_object()
-        data = {"verified": True}
         if not request.user.has_rbac_permission("reviews.manage"):
             return Response(
                 {"detail": "You are not authorized to verify this review data."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        instance.verified = True
+        instance.save(update_fields=["verified", "updated_at"])
         return Response(
             {"msg": "Review Verified Successfully"}, status=status.HTTP_200_OK
         )
@@ -1375,11 +1417,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        reviews = self.get_queryset()
-        if user.is_staff:
-            reviews = reviews
+        if user.is_staff or user.has_rbac_permission("reviews.manage"):
+            reviews = self.get_queryset()
         else:
-            reviews = reviews.filter(user=user)
+            reviews = (
+                Review.objects.select_related("product", "user")
+                .filter(user=user)
+                .order_by("-id")
+            )
         page = self.paginate_queryset(reviews)
         if page is not None:
             serializer = ReviewWithProductSerializer(
@@ -1562,21 +1607,50 @@ class AddToCartViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         items = request.data.get("items", [])
         user = request.user
-        cart_items = []
 
-        for item in items:
-            product = get_object_or_404(Product, id=item["id"])
-            variant = get_object_or_404(ProductVariant, id=item["variantId"])
-            pcs = item["pcs"]
-            existing_cart_item = Cart.objects.filter(
-                user=user, product=product, variant=variant
+        if not isinstance(items, list) or not items:
+            return Response(
+                {"error": "At least one cart item is required."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            if existing_cart_item.exists():
-                existing_cart_item.delete()
-            cart_item = Cart(user=user, product=product, variant=variant, pcs=pcs)
-            cart_items.append(cart_item)
 
-        Cart.objects.bulk_create(cart_items)
+        try:
+            with transaction.atomic():
+                for item in items:
+                    if not isinstance(item, dict):
+                        raise DjangoValidationError("Invalid cart item payload.")
+                    product_id = int(item.get("id"))
+                    variant_id = int(item.get("variantId"))
+                    pcs = int(item.get("pcs"))
+                    if pcs <= 0:
+                        raise DjangoValidationError("pcs must be a positive integer")
+
+                    variant = (
+                        ProductVariant.objects.select_for_update()
+                        .select_related("product")
+                        .get(id=variant_id, product_id=product_id)
+                    )
+                    if variant.product.deactive:
+                        raise DjangoValidationError("This product is not available.")
+
+                    cart_item, _created = Cart.objects.get_or_create(
+                        user=user,
+                        variant=variant,
+                        defaults={"product": variant.product, "pcs": pcs},
+                    )
+                    cart_item.product = variant.product
+                    cart_item.pcs = pcs
+                    cart_item.full_clean()
+                    cart_item.save()
+        except (TypeError, ValueError, ProductVariant.DoesNotExist):
+            return Response(
+                {"error": "Invalid cart item product or variant."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except DjangoValidationError as exc:
+            message = exc.message if hasattr(exc, "message") else str(exc)
+            return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response({"msg": "Added to Cart"}, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):

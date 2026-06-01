@@ -38,16 +38,29 @@ class UserLoginSerializer(serializers.Serializer):
 class UserDataSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
+    provider = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = '__all__'
+        fields = [
+            'id', 'email', 'profile', 'username', 'last_name', 'first_name',
+            'role', 'state', 'is_admin', 'is_superuser', 'created_at',
+            'updated_at', 'last_login', 'gender', 'dob', 'roles',
+            'permissions', 'provider'
+        ]
+        read_only_fields = [
+            'id', 'is_admin', 'is_superuser', 'created_at', 'updated_at',
+            'last_login', 'roles', 'permissions', 'provider'
+        ]
 
     def get_roles(self, obj):
         return list(obj.get_role_slugs())
 
     def get_permissions(self, obj):
         return list(obj.get_rbac_permission_codes())
+
+    def get_provider(self, obj):
+        return obj.account.provider if hasattr(obj, 'account') else None
 
 class UserDetailSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
@@ -92,7 +105,15 @@ class AdminUserDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        exclude = ['password']
+        fields = [
+            'id', 'email', 'profile', 'username', 'last_name', 'first_name',
+            'role', 'state', 'is_admin', 'is_superuser', 'created_at',
+            'updated_at', 'last_login', 'gender', 'dob', 'provider'
+        ]
+        read_only_fields = [
+            'id', 'is_admin', 'is_superuser', 'created_at', 'updated_at',
+            'last_login', 'provider'
+        ]
     def get_profile(self, obj):
         request = self.context.get('request')
         if obj.profile and hasattr(obj.profile, 'url'):
