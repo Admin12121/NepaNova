@@ -115,7 +115,15 @@ export interface Categorty {
   };
 }
 
-const CollectionPage = () => {
+const CollectionPage = ({
+  showSearchHeader = true,
+  showRecommended = true,
+  className,
+}: {
+  showSearchHeader?: boolean;
+  showRecommended?: boolean;
+  className?: string;
+} = {}) => {
   const { data: layoutData } = useGetlayoutQuery({ layoutslug: "home" });
   const { data: variantFilterData } = useVariantFiltersQuery({});
   const siteConfig: Categorty = useMemo(
@@ -199,8 +207,8 @@ const CollectionPage = () => {
 
   return (
     <>
-      <section className="flex flex-col gap-5 w-full">
-        {search && (
+	      <section className={cn("flex flex-col gap-5 w-full", className)}>
+	        {showSearchHeader && search && (
           <span className="">
             <p className="text-neutral-600 dark:text-themeTextGray ">
               Search results for
@@ -322,7 +330,7 @@ const CollectionPage = () => {
           </div>
         </div>
       </section>
-      <RecommendedProducts className="pb-14" />
+	      {showRecommended && <RecommendedProducts className="pb-14" />}
     </>
   );
 };

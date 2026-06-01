@@ -20,7 +20,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAuthUser } from "@/hooks/use-auth-user";
-import { useGetlayoutQuery, useCreateorUpdatelayoutMutation } from "@/lib/store/Service/api";
+import {
+  useCreateorUpdatelayoutMutation,
+  useGetlayoutQuery,
+  useProductsViewQuery,
+} from "@/lib/store/Service/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,12 +84,18 @@ import {
 import { HexColorPicker } from "react-colorful"
 import LogoAnimation from "@/components/global/logo_animation";
 import { DEFAULT_STORE_SETTINGS, getStoreSettings } from "@/lib/store-settings";
+import { ProductCard as AdminProductCard } from "@/components/global/admin-productcard";
+import MultipleSelector, { type Option } from "@/components/ui/multiselect";
 
 
 const componentSchema = z.object({
   visible: z.boolean(),
   title: z.string().min(1, "Title is required"),
   subtitle: z.string().min(1, "Subtitle is required"),
+  image: z.string().optional(),
+  href: z.string().optional(),
+  ctaLabel: z.string().optional(),
+  items: z.array(z.object({ productId: z.coerce.number().int().positive() })).optional(),
 });
 
 const sliderSchema = z
@@ -145,10 +155,10 @@ const filtersSchema = z.object({
 
 const settingsSchema = z.object({
   components: z.object({
-    products: componentSchema,
     trendingProducts: componentSchema,
     recentProducts: componentSchema,
-    recommendedProducts: componentSchema,
+    collection: componentSchema,
+    featured: componentSchema,
     store: componentSchema,
   }),
   slider: sliderSchema,
@@ -162,33 +172,148 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 type FilterItem = z.infer<typeof filterItemSchema>;
 type ColorFilterItem = z.infer<typeof colorFilterSchema>;
 
+const componentOrder = [
+  "trendingProducts",
+  "recentProducts",
+  "collection",
+  "featured",
+  "store",
+] as const;
+
+const componentLabels: Record<(typeof componentOrder)[number], string> = {
+  trendingProducts: "Trending Product",
+  recentProducts: "Recent Products",
+  collection: "Collection",
+  featured: "Featured",
+  store: "Store",
+};
+
+const componentDescriptions: Record<(typeof componentOrder)[number], string> = {
+  trendingProducts: "Homepage product rail backed by trending products.",
+  recentProducts: "Homepage product rail backed by latest products.",
+  collection: "Full collection browser reused from the collections page.",
+  featured: "Existing products selected manually by admin.",
+  store: "Custom store/brand promotion block.",
+};
+
+const defaultComponents = {
+  trendingProducts: {
+    visible: true,
+    title: "Trending Product",
+    subtitle: "Popular picks from NepaNova Impact.",
+  },
+  recentProducts: {
+    visible: true,
+    title: "Recent Products",
+    subtitle: "Freshly added Himalayan goods.",
+  },
+  collection: {
+    visible: true,
+    title: "Collection",
+    subtitle: "Explore the complete NepaNova product range.",
+  },
+  featured: {
+    visible: true,
+    title: "Featured",
+    subtitle: "Products selected manually for customers.",
+    items: [],
+  },
+  store: {
+    visible: true,
+    title: "Store",
+    subtitle: "Visit NepaNova Impact and discover our products.",
+    image: "/store.webp",
+    href: "/collections",
+    ctaLabel: "Visit us",
+  },
+};
+
+const normalizeFeaturedItems = (items: any[] = []) =>
+  items
+    .map((item) => {
+      const productId = Number(item?.productId ?? item?.product_id ?? item?.id);
+      return Number.isFinite(productId) && productId > 0 ? { productId } : null;
+    })
+    .filter(Boolean);
+
+const normalizeComponent = (value: any, fallback: any) => ({
+  ...fallback,
+  ...(value || {}),
+  visible:
+    typeof value?.visible === "boolean"
+      ? value.visible
+      : typeof fallback.visible === "boolean"
+        ? fallback.visible
+        : true,
+  title: value?.title || fallback.title,
+  subtitle: value?.subtitle || fallback.subtitle,
+  image: value?.image || fallback.image || "",
+  href: value?.href || fallback.href || "",
+  ctaLabel: value?.ctaLabel || fallback.ctaLabel || "",
+  items:
+    fallback.items !== undefined
+      ? normalizeFeaturedItems(value?.items || fallback.items || [])
+      : [],
+});
+
+const normalizeComponents = (components: any = {}) => ({
+  trendingProducts: normalizeComponent(
+    components.trendingProducts,
+    defaultComponents.trendingProducts,
+  ),
+  recentProducts: normalizeComponent(
+    components.recentProducts,
+    defaultComponents.recentProducts,
+  ),
+  collection: normalizeComponent(
+    components.collection || components.products,
+    defaultComponents.collection,
+  ),
+  featured: normalizeComponent(
+    components.featured || components.recommendedProducts,
+    defaultComponents.featured,
+  ),
+  store: normalizeComponent(components.store, defaultComponents.store),
+});
+
+const getFeaturedProductLabel = (product: any) =>
+  [product?.product_name, product?.categoryname ? `(${product.categoryname})` : ""]
+    .filter(Boolean)
+    .join(" ");
+
 export default function SettingsDashboard() {
   const { accessToken: token } = useAuthUser();
   const { data: layoutData, isLoading: isLoadingLayout, refetch } = useGetlayoutQuery(
     { layoutslug: "home" },
     { skip: !token }
   );
+  const { data: productsData, isLoading: isLoadingProducts } =
+    useProductsViewQuery({ page_size: 100 });
   const [createOrUpdateLayout] = useCreateorUpdatelayoutMutation();
 
   const [activeTab, setActiveTab] = useState("components");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [editingFilter, setEditingFilter] = useState<{
-    type: "category" | "color";
-    item: FilterItem | ColorFilterItem | null;
-    isNew: boolean;
-  } | null>(null);
+	  const [editingFilter, setEditingFilter] = useState<{
+	    type: "category" | "color";
+	    item: FilterItem | ColorFilterItem | null;
+	    isNew: boolean;
+	  } | null>(null);
+	  const activeSectionMeta =
+	    {
+	      components: { label: "Components", icon: Settings },
+	      slider: { label: "Slider", icon: ImageIcon2 },
+	      events: { label: "Events", icon: Layers },
+	      filters: { label: "Filters", icon: Filter },
+	      storeSettings: { label: "Store", icon: Settings },
+	      messages: { label: "Messages", icon: MessageSquare },
+	    }[activeTab] || { label: "Settings", icon: Settings };
+	  const ActiveSectionIcon = activeSectionMeta.icon;
 
-  const form = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      components: {
-        products: { visible: true, title: "", subtitle: "" },
-        trendingProducts: { visible: true, title: "", subtitle: "" },
-        recentProducts: { visible: false, title: "", subtitle: "" },
-        recommendedProducts: { visible: true, title: "", subtitle: "" },
-        store: { visible: true, title: "", subtitle: "" },
-      },
+	  const form = useForm<SettingsFormValues>({
+	    resolver: zodResolver(settingsSchema),
+	    defaultValues: {
+	      components: defaultComponents,
       slider: [{ image: "", href: "" }],
       events: [{ title: "", description: "", color: "#f87171" }],
       storeSettings: DEFAULT_STORE_SETTINGS,
@@ -198,8 +323,20 @@ export default function SettingsDashboard() {
         colors: [],
       },
     },
-    mode: "onChange",
-  });
+	    mode: "onChange",
+	  });
+	  const componentValues = form.watch("components");
+  const productOptions = Array.isArray(productsData)
+    ? productsData
+    : productsData?.results || [];
+  const currentFeaturedItems = componentValues?.featured?.items || [];
+  const featuredSelectedIds = currentFeaturedItems
+    .map((item: any) => Number(item.productId))
+    .filter(Boolean);
+  const featuredProductOptions: Option[] = productOptions.map((product: any) => ({
+    label: getFeaturedProductLabel(product),
+    value: String(product.id),
+  }));
 
   useEffect(() => {
     if (layoutData?.config) {
@@ -238,12 +375,13 @@ export default function SettingsDashboard() {
       const messages = apiData.messages || { message: "", date: "" };
       const storeSettings = getStoreSettings(apiData);
 
-      const transformedData = {
-        ...apiData,
-        storeSettings,
-        messages,
-        filters: transformedFilters,
-      };
+	      const transformedData = {
+	        ...apiData,
+	        components: normalizeComponents(apiData.components),
+	        storeSettings,
+	        messages,
+	        filters: transformedFilters,
+	      };
 
       form.reset(transformedData);
     }
@@ -252,9 +390,10 @@ export default function SettingsDashboard() {
   const onSubmit = async (data: SettingsFormValues) => {
     setLoading(true);
 
-    const transformedData = {
-      ...data,
-      filters: {
+	    const transformedData = {
+	      ...data,
+	      components: normalizeComponents(data.components),
+	      filters: {
         category: [] as Array<{ name: string }>,
         materials: {
           color: [] as Array<{ name: string; color: string }>,
@@ -343,17 +482,25 @@ export default function SettingsDashboard() {
     );
   };
 
-  const removeEventItem = (index: number) => {
-    const currentEvents = form.getValues().events;
-    if (currentEvents.length <= 1) {
-      toast.error("Cannot remove");
-      return;
+	  const removeEventItem = (index: number) => {
+	    const currentEvents = form.getValues().events;
+	    if (currentEvents.length <= 1) {
+	      toast.error("Cannot remove");
+	      return;
     }
 
     const newEvents = [...currentEvents];
     newEvents.splice(index, 1);
-    form.setValue("events", newEvents, { shouldValidate: true });
-  };
+	    form.setValue("events", newEvents, { shouldValidate: true });
+	  };
+
+	  const setFeaturedProducts = (options: Option[]) => {
+	    form.setValue(
+	      "components.featured.items",
+	      options.map((option) => ({ productId: Number(option.value) })),
+	      { shouldValidate: true, shouldDirty: true },
+	    );
+	  };
 
   const addFilterItem = (type: "category" | "color") => {
     const newItem: any = {
@@ -416,10 +563,10 @@ export default function SettingsDashboard() {
     toast.success("Item removed");
   };
 
-  return (
-    <div className="flex min-h-[94dvh] max-h-[94dvh] overflow-hidden w-full p-2 gap-2">
-      <div className="hidden w-64 flex-col border-r bg-background p-2 md:flex rounded-xl">
-        <div className="flex items-center gap-2 font-semibold text-lg mb-2 px-1 py-2">
+	  return (
+	    <div className="mx-auto flex h-full min-h-0 w-full max-w-[95rem] overflow-hidden text-foreground">
+	      <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 dark:bg-neutral-900/30 md:flex">
+	        <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3 font-semibold">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -433,14 +580,18 @@ export default function SettingsDashboard() {
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          Settings Dashboard
-        </div>
-        <nav className="flex flex-col gap-2">
-          <Button
-            variant={activeTab === "components" ? "default" : "ghost"}
-            className="justify-start"
-            onClick={() => setActiveTab("components")}
-          >
+	          Settings Dashboard
+	        </div>
+	        <nav data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto p-3">
+	          <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
+	            Sections
+	          </div>
+	          <div className="grid gap-1">
+	          <Button
+	            variant={activeTab === "components" ? "default" : "ghost"}
+	            className="justify-start"
+	            onClick={() => setActiveTab("components")}
+	          >
             <Settings className="mr-2 h-4 w-4" />
             Components
           </Button>
@@ -481,13 +632,33 @@ export default function SettingsDashboard() {
             className="justify-start"
             onClick={() => setActiveTab("messages")}
           >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
-          </Button>
-        </nav>
-      </div>
+	            <MessageSquare className="mr-2 h-4 w-4" />
+	            Messages
+	          </Button>
+	          </div>
+	        </nav>
+	      </aside>
 
-      <div className="flex-1 p-2 min-h-[92.5dvh] max-h-[92.5dvh] overflow-y-auto !rounded-xl">
+	      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+	        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+	          <div className="flex min-w-0 items-center gap-3">
+	            <ActiveSectionIcon className="h-4 w-4 text-muted-foreground" />
+	            <h1 className="truncate text-base font-semibold">
+	              {activeSectionMeta.label}
+	            </h1>
+	          </div>
+	          <Button
+	            aria-label="Save settings"
+	            variant="custom"
+	            size="icon"
+	            loading={loading}
+	            disabled={loading}
+	            onClick={form.handleSubmit(onSubmit)}
+	          >
+	            <Save className="h-4 w-4" />
+	          </Button>
+	        </div>
+	        <div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto p-4">
         {isLoadingLayout && !layoutData ? (
           <div className="flex h-[80vh] items-center justify-center">
             <div className="flex flex-col items-center gap-4">
@@ -518,121 +689,234 @@ export default function SettingsDashboard() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {activeTab === "components" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-3xl font-bold tracking-tight">
-                        Components
-                      </h2>
-                      <p className="text-muted-foreground mt-1">
-                        Manage the visibility and content of your homepage
-                        components.
-                      </p>
-                    </div>
-                    <Button type="submit" size="lg" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                      Components
+                    </h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage the visibility and content of your homepage
+                      components.
+                    </p>
                   </div>
                   <Separator />
 
-                  <div className="grid gap-6">
-                    {Object.entries(form.getValues().components || {}).map(
-                      ([key, component]) => (
-                        <Card
-                          key={key}
-                          className="overflow-hidden border-2 hover:border-primary/50 transition-all"
-                        >
-                          <CardHeader className="bg-muted/50 rounded-xl p-2 flex justify-center">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="capitalize flex items-center">
-                                <div className="bg-primary/10 p-2 rounded-md mr-3">
-                                  <Settings className="h-5 w-5 text-primary" />
-                                </div>
-                                <div>
-                                  {key.replace(/([A-Z])/g, " $1")}
-                                  <CardDescription className="text-xs">
-                                    Configure how this component appears on your
-                                    website
-                                  </CardDescription>
-                                </div>
-                              </CardTitle>
-                              <FormField
-                                control={form.control}
-                                name={`components.${key}.visible` as any}
-                                render={({ field }) => (
-                                  <FormItem className="flex items-center space-x-2 space-y-0">
-                                    <FormControl>
-                                      <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal">
-                                      {field.value ? "Visible" : "Hidden"}
-                                    </FormLabel>
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </CardHeader>
-                          <CardContent className="grid gap-4 py-4">
-                            <FormField
-                              control={form.control}
-                              name={`components.${key}.title` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Title</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} className="!bg-muted" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`components.${key}.subtitle` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Subtitle</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} className="!bg-muted" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </CardContent>
-                          <CardFooter className="bg-muted/30 px-2 border-t flex justify-between py-3">
-                            <div className="text-xs text-muted-foreground">
-                              Last updated: Today
-                            </div>
-                            <Badge
-                              variant={
-                                component.visible ? "default" : "outline"
-                              }
-                            >
-                              {component.visible ? "Active" : "Inactive"}
-                            </Badge>
-                          </CardFooter>
-                        </Card>
-                      )
-                    )}
-                  </div>
+	                  <div className="grid gap-4">
+	                    {componentOrder.map((key) => {
+	                      const component = componentValues?.[key] || defaultComponents[key];
+	                      return (
+	                        <Card
+	                          key={key}
+	                          className="overflow-hidden border transition-all hover:border-primary/50"
+	                        >
+	                          <CardHeader className="bg-muted/50 p-3">
+	                            <div className="flex items-center justify-between gap-4">
+	                              <CardTitle className="flex min-w-0 items-center">
+	                                <div className="mr-3 rounded-md bg-primary/10 p-2">
+	                                  <Settings className="h-5 w-5 text-primary" />
+	                                </div>
+	                                <div className="min-w-0">
+	                                  {componentLabels[key]}
+	                                  <CardDescription className="text-xs">
+	                                    {componentDescriptions[key]}
+	                                  </CardDescription>
+	                                </div>
+	                              </CardTitle>
+	                              <FormField
+	                                control={form.control}
+	                                name={`components.${key}.visible` as any}
+	                                render={({ field }) => (
+	                                  <FormItem className="flex items-center space-x-2 space-y-0">
+	                                    <FormControl>
+	                                      <Switch
+	                                        checked={field.value}
+	                                        onCheckedChange={field.onChange}
+	                                      />
+	                                    </FormControl>
+	                                    <FormLabel className="text-sm font-normal">
+	                                      {field.value ? "Visible" : "Hidden"}
+	                                    </FormLabel>
+	                                  </FormItem>
+	                                )}
+	                              />
+	                            </div>
+	                          </CardHeader>
+	                          <CardContent className="grid gap-4 py-4">
+	                            <div className="grid gap-4 md:grid-cols-2">
+	                              <FormField
+	                                control={form.control}
+	                                name={`components.${key}.title` as any}
+	                                render={({ field }) => (
+	                                  <FormItem>
+	                                    <FormLabel>Title</FormLabel>
+	                                    <FormControl>
+	                                      <Input {...field} className="!bg-muted" />
+	                                    </FormControl>
+	                                    <FormMessage />
+	                                  </FormItem>
+	                                )}
+	                              />
+	                              <FormField
+	                                control={form.control}
+	                                name={`components.${key}.subtitle` as any}
+	                                render={({ field }) => (
+	                                  <FormItem>
+	                                    <FormLabel>Subtitle</FormLabel>
+	                                    <FormControl>
+	                                      <Input {...field} className="!bg-muted" />
+	                                    </FormControl>
+	                                    <FormMessage />
+	                                  </FormItem>
+	                                )}
+	                              />
+	                            </div>
+
+	                            {key === "store" && (
+	                              <div className="grid gap-4 md:grid-cols-3">
+	                                <FormField
+	                                  control={form.control}
+	                                  name="components.store.image"
+	                                  render={({ field }) => (
+	                                    <FormItem>
+	                                      <FormLabel>Image URL</FormLabel>
+	                                      <FormControl>
+	                                        <Input {...field} className="!bg-muted" />
+	                                      </FormControl>
+	                                      <FormMessage />
+	                                    </FormItem>
+	                                  )}
+	                                />
+	                                <FormField
+	                                  control={form.control}
+	                                  name="components.store.href"
+	                                  render={({ field }) => (
+	                                    <FormItem>
+	                                      <FormLabel>Button Link</FormLabel>
+	                                      <FormControl>
+	                                        <Input {...field} className="!bg-muted" />
+	                                      </FormControl>
+	                                      <FormMessage />
+	                                    </FormItem>
+	                                  )}
+	                                />
+	                                <FormField
+	                                  control={form.control}
+	                                  name="components.store.ctaLabel"
+	                                  render={({ field }) => (
+	                                    <FormItem>
+	                                      <FormLabel>Button Text</FormLabel>
+	                                      <FormControl>
+	                                        <Input {...field} className="!bg-muted" />
+	                                      </FormControl>
+	                                      <FormMessage />
+	                                    </FormItem>
+	                                  )}
+	                                />
+	                              </div>
+	                            )}
+
+		                            {key === "featured" &&
+		                              (() => {
+		                                const selectedFeaturedOptions = (
+		                                  component.items || []
+		                                )
+		                                  .map((item: any) => {
+		                                    const product = productOptions.find(
+		                                      (productItem: any) =>
+		                                        Number(productItem.id) ===
+		                                        Number(item.productId),
+		                                    );
+
+		                                    return product
+		                                      ? {
+		                                          label: getFeaturedProductLabel(product),
+		                                          value: String(product.id),
+		                                        }
+		                                      : null;
+		                                  })
+		                                  .filter(Boolean) as Option[];
+
+		                                return (
+		                                  <div className="grid gap-4">
+		                                    <MultipleSelector
+		                                      commandProps={{
+		                                        label: "Select featured products",
+		                                      }}
+		                                      defaultOptions={featuredProductOptions}
+		                                      emptyIndicator={
+		                                        <p className="text-center text-sm">
+		                                          No products found
+		                                        </p>
+		                                      }
+		                                      onChange={setFeaturedProducts}
+		                                      placeholder="Select products"
+		                                      value={selectedFeaturedOptions}
+		                                    />
+		                                    {selectedFeaturedOptions.length === 0 ? (
+		                                      <p className="text-sm text-muted-foreground">
+		                                        No featured products selected.
+		                                      </p>
+		                                    ) : (
+		                                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+		                                        {selectedFeaturedOptions.map(
+		                                          (option) => {
+		                                            const product = productOptions.find(
+		                                              (productItem: any) =>
+		                                                String(productItem.id) ===
+		                                                option.value,
+		                                            );
+
+		                                            if (!product) return null;
+
+		                                            return (
+		                                              <div
+		                                                key={option.value}
+		                                                className="relative"
+		                                              >
+		                                                <Button
+		                                                  type="button"
+		                                                  variant="destructive"
+		                                                  size="icon"
+		                                                  className="absolute right-2 top-2 z-20 h-8 w-8"
+		                                                  onClick={() =>
+		                                                    setFeaturedProducts(
+		                                                      selectedFeaturedOptions.filter(
+		                                                        (selectedOption) =>
+		                                                          selectedOption.value !==
+		                                                          option.value,
+		                                                      ),
+		                                                    )
+		                                                  }
+		                                                >
+		                                                  <Trash2 className="h-4 w-4" />
+		                                                </Button>
+		                                                <AdminProductCard data={product} />
+		                                              </div>
+		                                            );
+		                                          },
+		                                        )}
+		                                      </div>
+		                                    )}
+		                                  </div>
+		                                );
+		                              })()}
+	                          </CardContent>
+	                          <CardFooter className="flex justify-between border-t bg-muted/30 px-2 py-3">
+	                            <div className="text-xs text-muted-foreground">
+	                              Saves to homepage layout config.
+	                            </div>
+	                            <Badge variant={component.visible ? "default" : "outline"}>
+	                              {component.visible ? "Active" : "Inactive"}
+	                            </Badge>
+	                          </CardFooter>
+	                        </Card>
+	                      );
+	                    })}
+	                  </div>
                 </div>
               )}
               {activeTab === "slider" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <h2 className="text-3xl font-bold tracking-tight">
                         Slider Images
@@ -642,29 +926,14 @@ export default function SettingsDashboard() {
                         1 and 6 images.
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addSliderItem}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Image
-                      </Button>
-                      <Button type="submit" size="lg" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addSliderItem}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Image
+                    </Button>
                   </div>
                   <Separator />
 
@@ -784,7 +1053,7 @@ export default function SettingsDashboard() {
               )}
               {activeTab === "events" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
                       <h2 className="text-3xl font-bold tracking-tight">
                         Events
@@ -794,29 +1063,14 @@ export default function SettingsDashboard() {
                         and 2 events.
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addEventItem}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Event
-                      </Button>
-                      <Button type="submit" size="lg" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addEventItem}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Event
+                    </Button>
                   </div>
                   <Separator />
 
@@ -936,28 +1190,13 @@ export default function SettingsDashboard() {
               )}
               {activeTab === "filters" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-3xl font-bold tracking-tight">
-                        Filters
-                      </h2>
-                      <p className="text-muted-foreground mt-1">
-                        Manage product filtering options for your store.
-                      </p>
-                    </div>
-                    <Button type="submit" size="lg" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                      Filters
+                    </h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage product filtering options for your store.
+                    </p>
                   </div>
                   <Separator />
 
@@ -1151,28 +1390,13 @@ export default function SettingsDashboard() {
               )}
               {activeTab === "storeSettings" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-3xl font-bold tracking-tight">
-                        Store Settings
-                      </h2>
-                      <p className="text-muted-foreground mt-1">
-                        Manage delivery timing and order messaging.
-                      </p>
-                    </div>
-                    <Button type="submit" size="lg" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                      Store Settings
+                    </h2>
+                    <p className="text-muted-foreground mt-1">
+                      Manage delivery timing and order messaging.
+                    </p>
                   </div>
                   <Separator />
 
@@ -1273,28 +1497,13 @@ export default function SettingsDashboard() {
               )}
               {activeTab === "messages" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-3xl font-bold tracking-tight">
-                        Messages
-                      </h2>
-                      <p className="text-muted-foreground mt-1">
-                        Set a global message to display on your website.
-                      </p>
-                    </div>
-                    <Button type="submit" size="lg" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                      Messages
+                    </h2>
+                    <p className="text-muted-foreground mt-1">
+                      Set a global message to display on your website.
+                    </p>
                   </div>
                   <Separator />
 
@@ -1378,8 +1587,9 @@ export default function SettingsDashboard() {
               )}
             </form>
           </Form>
-        ) : null}
-      </div>
+	        ) : null}
+	        </div>
+	      </main>
 
       {editingFilter && (
         <Dialog

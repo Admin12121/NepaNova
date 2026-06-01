@@ -67,8 +67,8 @@ const emptyPickDropPayload: PickDropPayload = {
   destinationBranch: "",
   destinationCityArea: "",
   businessAddress: "",
-  weight: "1",
-  orderType: "Regular",
+  weight: "",
+  orderType: "",
   instruction: "",
   ref: "",
   dimWeight: {
@@ -95,8 +95,8 @@ const normalizePickDropPayload = (draft: any): PickDropPayload => ({
   destinationBranch: String(draft?.destinationBranch ?? ""),
   destinationCityArea: String(draft?.destinationCityArea ?? ""),
   businessAddress: String(draft?.businessAddress ?? ""),
-  weight: String(draft?.weight ?? "1"),
-  orderType: String(draft?.orderType ?? "Regular"),
+  weight: String(draft?.weight ?? ""),
+  orderType: String(draft?.orderType ?? ""),
   instruction: String(draft?.instruction ?? ""),
   ref: String(draft?.ref ?? draft?.vendorTrackingNumber ?? ""),
   dimWeight: {

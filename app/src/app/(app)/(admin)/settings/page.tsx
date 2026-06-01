@@ -2,7 +2,11 @@ import React from "react";
 import Settings from "./_components";
 
 const page = () => {
-  return <div className="max-h-[95dvh]"><Settings /></div>;
+  return (
+    <div className="flex h-full min-h-0 overflow-hidden">
+      <Settings />
+    </div>
+  );
 };
 
 export default page;

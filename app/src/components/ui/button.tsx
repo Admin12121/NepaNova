@@ -110,7 +110,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         aria-disabled={isDisabled}
         {...props}
       >
-        <>{loading ? <Spinner color="secondary" size="sm" /> : children}</>
+        {loading ? <Spinner color="secondary" size="sm" /> : children}
       </Comp>
     );
   },

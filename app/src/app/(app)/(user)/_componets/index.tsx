@@ -8,7 +8,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import Image from "next/image";
-import { RecommendedProducts } from "@/app/(app)/(user)/collections/_components";
+import CollectionPage from "@/app/(app)/(user)/collections/_components";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -19,8 +19,10 @@ import {
   Skeleton,
 } from "@/components/global/product-card";
 import {
+  useProductsByIdsQuery,
   useProductsViewQuery,
   useGetlayoutQuery,
+  useTrendingProductsViewQuery,
 } from "@/lib/store/Service/api";
 import LogoAnimation, {
   AnimatedNumber,
@@ -31,14 +33,22 @@ interface ComponentSettings {
   visible: boolean;
   title: string;
   subtitle: string;
+  image?: string;
+  href?: string;
+  ctaLabel?: string;
+  items?: FeaturedItem[];
 }
 
 interface Components {
-  products: ComponentSettings;
   trendingProducts: ComponentSettings;
   recentProducts: ComponentSettings;
-  recommendedProducts: ComponentSettings;
+  collection: ComponentSettings;
+  featured: ComponentSettings;
   store: ComponentSettings;
+}
+
+interface FeaturedItem {
+  productId: number;
 }
 
 interface SliderItem {
@@ -65,29 +75,130 @@ interface SiteConfig {
   messages: Messages;
 }
 
+const defaultComponents: Components = {
+  trendingProducts: {
+    visible: true,
+    title: "Trending Product",
+    subtitle: "Popular picks from NepaNova Impact.",
+  },
+  recentProducts: {
+    visible: true,
+    title: "Recent Products",
+    subtitle: "Freshly added Himalayan goods.",
+  },
+  collection: {
+    visible: true,
+    title: "Collection",
+    subtitle: "Explore the complete NepaNova product range.",
+  },
+  featured: {
+    visible: true,
+    title: "Featured",
+    subtitle: "Products selected manually for customers.",
+    items: [],
+  },
+  store: {
+    visible: true,
+    title: "Store",
+    subtitle: "Visit NepaNova Impact and discover our products.",
+    image: "/store.webp",
+    href: "/collections",
+    ctaLabel: "Visit us",
+  },
+};
+
+const normalizeFeaturedItems = (items: any[] = []): FeaturedItem[] =>
+  items
+    .map((item) => {
+      const productId = Number(item?.productId ?? item?.product_id ?? item?.id);
+      return Number.isFinite(productId) && productId > 0 ? { productId } : null;
+    })
+    .filter(Boolean) as FeaturedItem[];
+
+const normalizeComponent = (
+  value: Partial<ComponentSettings> | undefined,
+  fallback: ComponentSettings,
+): ComponentSettings => ({
+  ...fallback,
+  ...(value || {}),
+  visible:
+    typeof value?.visible === "boolean" ? value.visible : fallback.visible,
+  title: value?.title || fallback.title,
+  subtitle: value?.subtitle || fallback.subtitle,
+  image: value?.image || fallback.image,
+  href: value?.href || fallback.href,
+  ctaLabel: value?.ctaLabel || fallback.ctaLabel,
+  items:
+    fallback.items !== undefined
+      ? normalizeFeaturedItems(value?.items || fallback.items || [])
+      : [],
+});
+
+const normalizeComponents = (components: any = {}): Components => ({
+  trendingProducts: normalizeComponent(
+    components.trendingProducts,
+    defaultComponents.trendingProducts,
+  ),
+  recentProducts: normalizeComponent(
+    components.recentProducts,
+    defaultComponents.recentProducts,
+  ),
+  collection: normalizeComponent(
+    components.collection || components.products,
+    defaultComponents.collection,
+  ),
+  featured: normalizeComponent(
+    components.featured || components.recommendedProducts,
+    defaultComponents.featured,
+  ),
+  store: normalizeComponent(components.store, defaultComponents.store),
+});
+
 const LandingPage = ({ userCookie }: { userCookie: boolean }) => {
   const { data: layoutData, isLoading: isLayoutLoading } = useGetlayoutQuery({
     layoutslug: "home",
   });
   const siteConfig: SiteConfig = useMemo(
-    () =>
-      layoutData?.config || {
-        components: {
-          products: { visible: false, title: "", subtitle: "" },
-          trendingProducts: { visible: false, title: "", subtitle: "" },
-          recentProducts: { visible: false, title: "", subtitle: "" },
-          recommendedProducts: { visible: false, title: "", subtitle: "" },
-          store: { visible: false, title: "", subtitle: "" },
-        },
-        slider: [],
-        events: [],
-        messages: { message: "", date: "" },
-      },
+    () => ({
+      ...(layoutData?.config || {}),
+      components: normalizeComponents(layoutData?.config?.components),
+      slider: layoutData?.config?.slider || [],
+      events: layoutData?.config?.events || [],
+      messages: layoutData?.config?.messages || { message: "", date: "" },
+    }),
     [layoutData],
   );
 
-  const { data, isLoading: loading } = useProductsViewQuery({ page_size: 8 });
-  const products: Product[] = data?.results || [];
+  const { data: trendingData, isLoading: trendingLoading } =
+    useTrendingProductsViewQuery({});
+  const { data: recentData, isLoading: recentLoading } = useProductsViewQuery({
+    page_size: 8,
+    filter: "newin",
+  });
+  const trendingProducts: Product[] = Array.isArray(trendingData)
+    ? trendingData
+    : trendingData?.results || [];
+  const recentProducts: Product[] = recentData?.results || [];
+  const featuredProductIds = useMemo(
+    () =>
+      (siteConfig.components.featured.items || [])
+        .map((item) => Number(item.productId))
+        .filter(Boolean),
+    [siteConfig.components.featured.items],
+  );
+  const { data: featuredData, isLoading: featuredLoading } =
+    useProductsByIdsQuery(
+      { ids: featuredProductIds.join(",") },
+      { skip: featuredProductIds.length === 0 },
+    );
+  const featuredProducts: Product[] = useMemo(() => {
+    const products = Array.isArray(featuredData)
+      ? featuredData
+      : featuredData?.results || [];
+    return featuredProductIds
+      .map((id) => products.find((product: Product) => Number(product.id) === id))
+      .filter(Boolean) as Product[];
+  }, [featuredData, featuredProductIds]);
   const [progress, setProgress] = useState(0);
   const [showAnimation, setShowAnimation] = useState(!userCookie);
   const [fadeOut, setFadeOut] = useState(false);
@@ -215,94 +326,149 @@ const LandingPage = ({ userCookie }: { userCookie: boolean }) => {
           )}
         </div>
       </div>
-      {siteConfig.components.products.visible && (
-        <section className="w-full h-full flex flex-col items-center py-5 gap-8 min-h-[630px] transition-all duration-500">
-          <span className="text-center">
-            <h1 className="text-4xl">{siteConfig.components.products.title}</h1>
-            <p>{siteConfig.components.products.subtitle}</p>
-          </span>
-          <ProductSkeleton
-            className="w-full"
-            loading={loading && products?.length > 0}
-          >
-            <div
-              className={cn(
-                "grid grid-cols-1 md:grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-4 transition-opacity motion-reduce:transition-none w-full",
-                loading && "pointer-events-none opacity-50 blur-sm",
-              )}
-            >
-              {products.map((product, index) => (
-                <div
-                  key={index}
-                  className="product-card justify-center items-center flex flex-col relative isolate rounded-md group host default elevated-links svelte-18bpazq"
-                >
-                  <ProductCard data={product} base={Math.random() >= 0.5} />
-                </div>
-              ))}
-              <div className="product-card min-h-[492px] justify-center items-center flex flex-col relative isolate rounded-md group host default elevated-links svelte-18bpazq h-full">
-                <Link
-                  href="/collections"
-                  className="relative w-full flex gap-5 h-full"
-                >
-                  <span
-                    className={cn(
-                      "relative rounded-lg overflow-hidden group grow isolation-auto z-10 svelte-483qmb p-1",
-                      "bg-neutral-200/50 hover:bg-white/50 dark:bg-neutral-950/50 dark:hover:bg-neutral-950 transition-all duration-300 cursor-pointer",
-                      "flex flex-col gap-1 justify-center items-center backdrop-blur-2xl",
-                    )}
-                  >
-                    <h1>Shop Everyday</h1>
-                  </span>
-                </Link>
-              </div>
-              {loading &&
-                Array.from({ length: 4 }, (_, index) => (
-                  <Skeleton key={index} />
-                ))}
-            </div>
-          </ProductSkeleton>
-        </section>
-      )}
-      {siteConfig.components.recommendedProducts.visible && (
-        <section className="w-full h-full flex flex-col items-center py-5 gap-3 min-h-[630px]">
-          <span className="text-center">
-            <h1 className="text-4xl">
-              {siteConfig.components.recommendedProducts.title}
-            </h1>
-            <p>{siteConfig.components.recommendedProducts.subtitle}</p>
-          </span>
-          <RecommendedProducts
-            title=" "
-            className="!px-0 mx-0 !py-0 mt-5 lg:mt-0"
-            base="w-full !py-0"
-          />
-        </section>
-      )}
-      {siteConfig.components.store.visible && (
-        <section className="w-full h-full flex flex-col items-center lg:py-5 gap-3 lg:pb-5 lg:min-h-[630px]">
-          <span className="text-center">
-            <h1 className="text-4xl">{siteConfig.components.store.title}</h1>
-            <p>{siteConfig.components.store.subtitle}</p>
-          </span>
-          <div className="relative lg:!h-[600px]">
-            <Image
-              alt="store"
-              src={"/store.webp"}
-              priority
-              quality={100}
-              width={700}
+	      {siteConfig.components.trendingProducts.visible && (
+	        <HomeProductSection
+	          settings={siteConfig.components.trendingProducts}
+	          products={trendingProducts}
+	          loading={trendingLoading}
+	        />
+	      )}
+	      {siteConfig.components.recentProducts.visible && (
+	        <HomeProductSection
+	          settings={siteConfig.components.recentProducts}
+	          products={recentProducts}
+	          loading={recentLoading}
+	        />
+	      )}
+	      {siteConfig.components.collection.visible && (
+	        <section className="w-full h-full flex flex-col items-center py-5 gap-5">
+	          <span className="text-center">
+	            <h1 className="text-4xl">{siteConfig.components.collection.title}</h1>
+	            <p>{siteConfig.components.collection.subtitle}</p>
+	          </span>
+	          <CollectionPage
+	            showSearchHeader={false}
+	            showRecommended={false}
+	            className="w-full"
+	          />
+	        </section>
+	      )}
+	      {siteConfig.components.featured.visible &&
+	        featuredProductIds.length > 0 && (
+	          <FeaturedSection
+	            settings={siteConfig.components.featured}
+	            products={featuredProducts}
+	            loading={featuredLoading}
+	          />
+	        )}
+	      {siteConfig.components.store.visible && (
+	        <section className="w-full h-full flex flex-col items-center lg:py-5 gap-3 lg:pb-5 lg:min-h-[630px]">
+	          <span className="text-center">
+	            <h1 className="text-4xl">{siteConfig.components.store.title}</h1>
+	            <p>{siteConfig.components.store.subtitle}</p>
+	          </span>
+	          <div className="relative lg:!h-[600px]">
+	            <Image
+	              alt="store"
+	              src={siteConfig.components.store.image || "/store.webp"}
+	              priority
+	              quality={100}
+	              width={700}
               height={400}
               sizes="100vw"
-              className="w-dvw object-cover background-center relative z-10 lg:!h-[600px] rounded-xl opacity-90"
-            />
-            <div className="absolute flex -z-[1px] top-0 w-full h-full animate-pulse bg-neutral-200 dark:bg-neutral-950/80 rounded-xl opacity-90"></div>
-            <Button className="absolute left-2 bottom-2 backdrop-blur-sm dark:bg-white/50 bg-neutral-900/50">
-              Visit us
-            </Button>
-          </div>
-        </section>
-      )}
+	              className="w-dvw object-cover background-center relative z-10 lg:!h-[600px] rounded-xl opacity-90"
+	            />
+	            <div className="absolute flex -z-[1px] top-0 w-full h-full animate-pulse bg-neutral-200 dark:bg-neutral-950/80 rounded-xl opacity-90"></div>
+	            <Button
+	              asChild={Boolean(siteConfig.components.store.href)}
+	              className="absolute left-2 bottom-2 backdrop-blur-sm dark:bg-white/50 bg-neutral-900/50"
+	            >
+	              {siteConfig.components.store.href ? (
+	                <Link href={siteConfig.components.store.href}>
+	                  {siteConfig.components.store.ctaLabel || "Visit us"}
+	                </Link>
+	              ) : (
+	                <span>{siteConfig.components.store.ctaLabel || "Visit us"}</span>
+	              )}
+	            </Button>
+	          </div>
+	        </section>
+	      )}
     </div>
+  );
+};
+
+const HomeProductSection = ({
+  settings,
+  products,
+  loading,
+}: {
+  settings: ComponentSettings;
+  products: Product[];
+  loading: boolean;
+}) => {
+  return (
+    <section className="w-full h-full flex flex-col items-center py-5 gap-8 min-h-[630px] transition-all duration-500">
+      <span className="text-center">
+        <h1 className="text-4xl">{settings.title}</h1>
+        <p>{settings.subtitle}</p>
+      </span>
+      <ProductSkeleton className="w-full" loading={loading}>
+        <div
+          className={cn(
+            "grid grid-cols-1 md:grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-4 transition-opacity motion-reduce:transition-none w-full",
+            loading && "pointer-events-none opacity-50 blur-sm",
+          )}
+        >
+          {products.map((product, index) => (
+            <div
+              key={product.id || index}
+              className="product-card justify-center items-center flex flex-col relative isolate rounded-md group host default elevated-links svelte-18bpazq"
+            >
+              <ProductCard data={product} base={index % 2 === 0} />
+            </div>
+          ))}
+          {loading &&
+            Array.from({ length: 4 }, (_, index) => <Skeleton key={index} />)}
+        </div>
+      </ProductSkeleton>
+    </section>
+  );
+};
+
+const FeaturedSection = ({
+  settings,
+  products,
+  loading,
+}: {
+  settings: ComponentSettings;
+  products: Product[];
+  loading: boolean;
+}) => {
+  return (
+    <section className="w-full h-full flex flex-col items-center py-5 gap-8 min-h-[630px] transition-all duration-500">
+      <span className="text-center">
+        <h1 className="text-4xl">{settings.title}</h1>
+        <p>{settings.subtitle}</p>
+      </span>
+      <ProductSkeleton className="w-full" loading={loading}>
+        <div
+          className={cn(
+            "grid grid-cols-1 md:grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-4 transition-opacity motion-reduce:transition-none w-full",
+            loading && "pointer-events-none opacity-50 blur-sm",
+          )}
+        >
+          {products.map((product, index) => (
+            <div
+              key={product.id || index}
+              className="product-card justify-center items-center flex flex-col relative isolate rounded-md group host default elevated-links svelte-18bpazq"
+            >
+              <ProductCard data={product} base={index % 2 === 0} />
+            </div>
+          ))}
+        </div>
+      </ProductSkeleton>
+    </section>
   );
 };
 

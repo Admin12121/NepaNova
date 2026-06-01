@@ -9,6 +9,7 @@ import { Links } from "./links";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { useAuthUser } from "@/hooks/use-auth-user";
+import { usePathname } from "next/navigation";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -18,6 +19,8 @@ interface ProvidersProps {
 
 const Providers = ({ children, collapsed, layout }: ProvidersProps) => {
   const { permissions, role } = useAuthUser();
+  const pathname = usePathname();
+  const lockPageScroll = pathname?.startsWith("/settings");
   const links = React.useMemo(() => {
     const canAccess = (permission?: string) =>
       !permission || role === "Admin" || permissions.includes(permission);
@@ -48,7 +51,8 @@ const Providers = ({ children, collapsed, layout }: ProvidersProps) => {
           className={cn(
             "relative flex h-full flex-1 flex-col bg-white dark:bg-[#18181b]",
             " md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
-            "rounded-xl overflow-y-auto",
+            "rounded-xl",
+            lockPageScroll ? "overflow-hidden" : "overflow-y-auto",
           )}
         >
           {children}

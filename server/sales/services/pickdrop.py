@@ -125,20 +125,6 @@ def sale_description(sale):
     return ", ".join(items)[:250] or f"Order {sale.transactionuid}"
 
 
-def default_dimensions():
-    length = getattr(settings, "PICKDROP_DEFAULT_PACKAGE_LENGTH", 0)
-    width = getattr(settings, "PICKDROP_DEFAULT_PACKAGE_WIDTH", 0)
-    height = getattr(settings, "PICKDROP_DEFAULT_PACKAGE_HEIGHT", 0)
-    if not all([length, width, height]):
-        return None
-    return {
-        "length": length,
-        "width": width,
-        "height": height,
-        "unit": getattr(settings, "PICKDROP_DEFAULT_DIMENSION_UNIT", "cm") or "cm",
-    }
-
-
 def _clean_text(value):
     return str(value or "").strip()
 
@@ -218,10 +204,17 @@ def _validate_order_payload(payload):
         labels = ", ".join(missing)
         raise PickDropAPIError(f"Pick & Drop payload is missing: {labels}.")
 
+    for field in required_fields + ["instruction", "ref"]:
+        payload[field] = _clean_text(payload.get(field))
+
     payload["primaryMobileNo"] = normalize_phone(payload.get("primaryMobileNo"))
     payload["weight"] = _positive_number(payload.get("weight"), "Package weight")
     if "dimWeight" in payload:
-        payload["dimWeight"] = _normalize_dim_weight(payload.get("dimWeight"))
+        dim_weight = _normalize_dim_weight(payload.get("dimWeight"))
+        if dim_weight:
+            payload["dimWeight"] = dim_weight
+        else:
+            payload.pop("dimWeight", None)
 
 
 def build_order_payload(sale, overrides=None, *, validate=True):
@@ -229,39 +222,21 @@ def build_order_payload(sale, overrides=None, *, validate=True):
     if not shipping:
         raise PickDropAPIError("Order has no shipping address.")
 
-    customer_phone = shipping.phone or ""
-    destination_branch = (
-        getattr(settings, "PICKDROP_DEFAULT_DESTINATION_BRANCH", "") or shipping.city
-    )
-    destination_area = (
-        getattr(settings, "PICKDROP_DEFAULT_DESTINATION_CITY_AREA", "")
-        or shipping.city
-        or shipping.address
-    )
-    business_address = getattr(settings, "PICKDROP_BUSINESS_ADDRESS", "")
-
     payload = {
         "vendorTrackingNumber": sale.transactionuid,
         "codAmount": float(money_to_decimal(sale.total_amt)),
         "orderDescription": sale_description(sale),
         "customerName": sale_customer_name(sale),
-        "landmark": shipping.address,
-        "primaryMobileNo": customer_phone,
-        "destinationBranch": destination_branch,
-        "destinationCityArea": destination_area,
-        "weight": getattr(settings, "PICKDROP_DEFAULT_PACKAGE_WEIGHT", 1.0),
-        "orderType": getattr(settings, "PICKDROP_DEFAULT_ORDER_TYPE", "Regular")
-        or "Regular",
-        "instruction": getattr(settings, "PICKDROP_DEFAULT_INSTRUCTION", ""),
-        "ref": getattr(settings, "PICKDROP_REF", "") or sale.transactionuid,
+        "landmark": shipping.address or "",
+        "primaryMobileNo": shipping.phone or "",
+        "businessAddress": "",
+        "destinationBranch": "",
+        "destinationCityArea": "",
+        "weight": "",
+        "orderType": "",
+        "instruction": "",
+        "ref": sale.transactionuid,
     }
-
-    if business_address:
-        payload["businessAddress"] = business_address
-
-    dim_weight = default_dimensions()
-    if dim_weight:
-        payload["dimWeight"] = dim_weight
 
     payload = _apply_payload_overrides(payload, overrides)
     payload["vendorTrackingNumber"] = sale.transactionuid
@@ -516,7 +491,13 @@ def process_shipment(shipment, *, force=False, payload_overrides=None):
 
     sale = shipment.sale
 
-    request_payload = build_order_payload(sale, payload_overrides)
+    stored_payload = (
+        shipment.request_payload if isinstance(shipment.request_payload, dict) else {}
+    )
+    request_payload = build_order_payload(
+        sale,
+        payload_overrides if payload_overrides is not None else stored_payload,
+    )
     client = PickDropClient()
 
     try:
