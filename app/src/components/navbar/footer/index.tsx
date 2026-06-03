@@ -22,7 +22,7 @@ const Footer = () => {
           width={400}
           height={100}
           alt="store"
-          className="border border-primary/10 bg-primary/10 w-full h-[150px] rounded-lg object-left object-contain opacity-90"
+          className="border border-primary/10 bg-primary/10 w-full h-[150px] rounded-lg object-left object-cover xs:object-contain opacity-90"
         />
       </div>
       <section className="flex flex-col gap-10 justify-between lg:flex-row lg:gap-20">

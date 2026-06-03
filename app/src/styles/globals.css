@@ -426,7 +426,7 @@ body {
     border: none;
     cursor: pointer;
     outline: none;
-    color: #000000d3;
+    color: #000000d3 !important;
     position: relative;
     margin-left: 4px;
     display: flex;
@@ -438,6 +438,7 @@ body {
     z-index: 999;
     opacity: 0;
     transition: 0.5s cubic-bezier(0.075, 0.82, 0.165, 1);
+    padding: 8px;
 }
 
 .swiper-button-next {

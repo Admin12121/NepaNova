@@ -10,6 +10,7 @@ import { ModeSwitcher } from "@/components/navbar/mood-switcher";
 import dynamic from "next/dynamic";
 
 import Cart from "./cart";
+import ShinyText from "@/components/global/shiny-text";
 
 const Footer = dynamic(() => import("./footer"), { ssr: false });
 const SiteBanner = dynamic(() => import("../site-banner"), { ssr: false });
@@ -45,18 +46,22 @@ export function SiteHeader({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       {children}
-      <footer className="w-full flex flex-col items-center justify-center">
+      <footer className="w-full flex flex-col items-center justify-center pb-17 md:pb-0">
         <Footer />
-        <div className="hidden lg:flex h-10 bottom-0 z-50 w-full border-t-1  dark:!border-neutral-900 justify-center items-center">
-          <div className="max-w-[95rem] w-full h-full flex justify-between items-center px-5">
+        <div className="flex h-10 bottom-0 z-50 w-full border-t-1  dark:!border-neutral-900 justify-center items-center">
+          <div className="max-w-[95rem] w-full h-full flex justify-between items-start sm:items-center px-5 flex-col sm:flex-row ">
             <p className="dark:text-neutral-400 text-sm text-neutral-600">
               Design and development by{" "}
               <a
-                href="https://biki.com.np"
+                href="https://admin12121.com"
                 target="_blank"
                 className="text-neutral-700 hover:text-neutral-800  dark:text-neutral-300 hover:dark:text-white transition duration-500"
               >
-                Admin12121
+                <ShinyText
+                  text="Admin12121"
+                  duration={2}
+                  delay={1}
+                />
               </a>
             </p>
             <span className="dark:text-neutral-300 text-xs font- flex gap-2 ">

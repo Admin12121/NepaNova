@@ -145,6 +145,7 @@ const config: Config = {
       },
     },
     screens: {
+      xs: "500px",
       sm: "660px",
       "max-sm": {
         max: "639px",

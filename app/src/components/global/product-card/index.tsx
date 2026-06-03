@@ -295,7 +295,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <span
           className={cn(
             "relative w-full h-[90px] flex flex-col rounded-lg p-3 py-2 justify-between dark:bg-transparent",
-            base && "bg-[url('/bg.svg')] bg-cover dark:bg-img-inherit",
+            base && "overflow-hidden bg-transparent before:content-[''] before:absolute before:inset-0 before:bg-[url('/bg.svg')] before:bg-cover before:bg-center dark:before:opacity-10 before:-z-10 dark:before:bg-img-inherit",
           )}
         >
           <div className="flex gap-3 items-center">
