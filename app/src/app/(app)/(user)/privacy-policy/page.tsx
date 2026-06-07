@@ -53,6 +53,28 @@ const PrivacyPolicy = () => {
         </Link>
         .
       </p>
+      <section className="w-full max-w-[50rem] rounded-lg border border-neutral-200 bg-background p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="text-lg font-medium text-neutral-950 dark:text-white">
+          Registered Organization
+        </h2>
+        <p className="mt-2 text-base text-neutral-700 dark:text-neutral-300">
+          NepaNova Impact operates as a registered organization in Nepal.
+        </p>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-neutral-500">PAN No.</dt>
+            <dd className="font-medium text-neutral-950 dark:text-white">
+              623596672
+            </dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Registration Number</dt>
+            <dd className="font-medium text-neutral-950 dark:text-white">
+              390352/82/83
+            </dd>
+          </div>
+        </dl>
+      </section>
       <div className="space-y-4 max-w-[95rem] w-full lg:w-auto">
         <Accordion
           type="single"

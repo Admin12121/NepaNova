@@ -110,7 +110,9 @@
         <h2>NepaNova Impact</h2>
         <p>
           Kathmandu, Nepal<br>
-          Email: info@nepanova.com
+          Email: info@nepanova.com<br>
+          PAN No: 623596672<br>
+          Registration Number: 390352/82/83
         </p>
       </div>
       <div>
@@ -151,7 +153,7 @@
           {% if payment_method == 'Stripe' %}
             ${{ sub_total }}
           {% else %}
-            रु{{ sub_total }}
+            Rs {{ sub_total }}
           {% endif %}
         </td>
       </tr>
@@ -161,7 +163,7 @@
           {% if payment_method == 'Stripe' %}
             ${{ shipping }}
           {% else %}
-            रु{{ shipping }}
+            Rs {{ shipping }}
           {% endif %}
         </td>
       </tr>
@@ -171,7 +173,7 @@
           {% if payment_method == 'Stripe' %}
             -${{ discount }}
           {% else %}
-            -रु{{ discount }}
+            -Rs {{ discount }}
           {% endif %}
         </td>
       </tr>
@@ -181,7 +183,7 @@
           {% if payment_method == 'Stripe' %}
             ${{ total_amt }}
           {% else %}
-            रु{{ total_amt }}
+            Rs {{ total_amt }}
           {% endif %}
         </strong></td>
       </tr>

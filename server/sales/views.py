@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from account.models import DeliveryAddress
+from account.models import DeliveryAddress, User
 from account.rbac import HasRbacPermission
 from account.renderers import UserRenderer
 from account.utils import send_email
@@ -105,7 +105,13 @@ def get_invoice_details(sale, user_email):
 class SalesViewSet(viewsets.ModelViewSet):
     """Sales ViewSet with admin-only update/delete."""
 
-    ALLOWED_PAYMENT_METHODS = {"Cash On Delivery"}
+    ALLOWED_PAYMENT_METHODS = {
+        "Cash On Delivery",
+        "Cash",
+        "Card",
+        "Bank Transfer",
+        "Online Payment",
+    }
     queryset = Sales.objects.all().order_by("-id")
     renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated]
@@ -134,6 +140,7 @@ class SalesViewSet(viewsets.ModelViewSet):
             "shipment_detail",
             "pickdrop_payload",
             "pack_with_pickdrop",
+            "pos",
         ]:
             return [HasRbacPermission("orders.manage")]
         if self.action == "destroy":
@@ -265,179 +272,171 @@ class SalesViewSet(viewsets.ModelViewSet):
                 {"error": "Redeem code usage limit reached."}
             )
 
-    def create(self, request, *args, **kwargs):
-        """Override create instead of perform_create so we can return proper responses."""
-        data = request.data
-        invoice_data = data.get("products", [])
-        user = request.user
-
-        transactionuid = data.get("transactionuid")
-        if not transactionuid:
-            return Response(
-                {"error": "Transaction UID is required."},
-                status=status.HTTP_400_BAD_REQUEST,
+    def _generate_transactionuid(self, prefix):
+        while True:
+            uid = (
+                f"{prefix}-{timezone.now().strftime('%Y%m%d')}-"
+                f"{secrets.token_hex(4).upper()}"
             )
+            if not Sales.objects.filter(transactionuid=uid).exists():
+                return uid
 
-        payment_method = data.get("payment_method") or "Cash On Delivery"
+    def _send_invoice_email(self, sale):
+        context = get_invoice_details(sale, sale.costumer_name.email)
+        subject = f"Order Confirmation - #{sale.transactionuid}"
+        body = render_to_string("invoice.html", context)
+        return send_email(subject, sale.costumer_name.email, body)
+
+    def _create_sale_from_payload(
+        self,
+        *,
+        data,
+        customer,
+        created_by,
+        require_shipping,
+        order_source,
+        default_status="pending",
+    ):
+        transactionuid = data.get("transactionuid") or self._generate_transactionuid(
+            "POS" if not require_shipping else "ORD"
+        )
+        payment_method = data.get("payment_method") or (
+            "Cash On Delivery" if require_shipping else "Cash"
+        )
         if payment_method not in self.ALLOWED_PAYMENT_METHODS:
-            return Response(
-                {"error": "Unsupported payment method."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise serializers.ValidationError({"error": "Unsupported payment method."})
 
-        try:
+        order_items = self._prepare_order_items(data.get("products", []))
+        shipping_instance = None
+        if require_shipping:
             shipping_id = self._parse_positive_int(data.get("shipping"), "shipping")
-            order_items = self._prepare_order_items(invoice_data)
-        except serializers.ValidationError as exc:
-            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                shipping_instance = DeliveryAddress.objects.select_for_update().get(
+                    id=shipping_id, user=customer, is_deleted=False
+                )
+            except DeliveryAddress.DoesNotExist:
+                raise serializers.ValidationError({"error": "Invalid shipping address."})
 
         redeem_id = self._get_redeem_id(data.get("redeemData"))
         if redeem_id:
+            redeem_id = self._parse_positive_int(redeem_id, "redeemData.id")
+
+        if Sales.objects.select_for_update().filter(transactionuid=transactionuid).exists():
+            raise IntegrityError("duplicate transactionuid")
+
+        redeem_code_obj = None
+        if redeem_id:
             try:
-                redeem_id = self._parse_positive_int(redeem_id, "redeemData.id")
-            except serializers.ValidationError as exc:
-                return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+                redeem_code_obj = Redeem_Code.objects.select_for_update().get(id=redeem_id)
+            except Redeem_Code.DoesNotExist:
+                raise serializers.ValidationError({"error": "Invalid redeem code."})
+            self._validate_redeem_code(redeem_code_obj)
 
-        try:
-            with transaction.atomic():
-                if Sales.objects.select_for_update().filter(
-                    transactionuid=transactionuid
-                ).exists():
-                    return Response(
-                        {"error": "This order has already been placed."},
-                        status=status.HTTP_409_CONFLICT,
-                    )
+        variants = {
+            variant.id: variant
+            for variant in ProductVariant.objects.select_for_update()
+            .select_related("product")
+            .filter(id__in={item["variant_id"] for item in order_items})
+        }
 
-                try:
-                    shipping_instance = DeliveryAddress.objects.select_for_update().get(
-                        id=shipping_id, user=user, is_deleted=False
-                    )
-                except DeliveryAddress.DoesNotExist:
-                    raise serializers.ValidationError(
-                        {"error": "Invalid shipping address."}
-                    )
+        line_items = []
+        requested_stock = {}
+        subtotal = Decimal("0.00")
 
-                redeem_code_obj = None
-                if redeem_id:
-                    try:
-                        redeem_code_obj = Redeem_Code.objects.select_for_update().get(
-                            id=redeem_id
-                        )
-                    except Redeem_Code.DoesNotExist:
-                        raise serializers.ValidationError(
-                            {"error": "Invalid redeem code."}
-                        )
-                    self._validate_redeem_code(redeem_code_obj)
+        for item in order_items:
+            variant = variants.get(item["variant_id"])
+            if not variant:
+                raise serializers.ValidationError({"error": "Invalid product variant."})
+            if variant.product_id != item["product_id"]:
+                raise serializers.ValidationError(
+                    {"error": "Product and variant do not match."}
+                )
+            if variant.product.deactive:
+                raise serializers.ValidationError(
+                    {"error": "This product is not available."}
+                )
 
-                variants = {
-                    variant.id: variant
-                    for variant in ProductVariant.objects.select_for_update()
-                    .select_related("product")
-                    .filter(id__in={item["variant_id"] for item in order_items})
+            quantity = item["quantity"]
+            unit_price = self._variant_unit_price(variant)
+            line_total = (unit_price * Decimal(quantity)).quantize(Decimal("0.01"))
+            subtotal += line_total
+            requested_stock[variant.id] = requested_stock.get(variant.id, 0) + quantity
+            line_items.append(
+                {
+                    "variant": variant,
+                    "product": variant.product,
+                    "quantity": quantity,
+                    "unit_price": unit_price,
+                    "line_total": line_total,
                 }
-
-                line_items = []
-                requested_stock = {}
-                subtotal = Decimal("0.00")
-
-                for item in order_items:
-                    variant = variants.get(item["variant_id"])
-                    if not variant:
-                        raise serializers.ValidationError(
-                            {"error": "Invalid product variant."}
-                        )
-                    if variant.product_id != item["product_id"]:
-                        raise serializers.ValidationError(
-                            {"error": "Product and variant do not match."}
-                        )
-                    if variant.product.deactive:
-                        raise serializers.ValidationError(
-                            {"error": "This product is not available."}
-                        )
-
-                    quantity = item["quantity"]
-                    unit_price = self._variant_unit_price(variant)
-                    line_total = (unit_price * Decimal(quantity)).quantize(
-                        Decimal("0.01")
-                    )
-                    subtotal += line_total
-                    requested_stock[variant.id] = (
-                        requested_stock.get(variant.id, 0) + quantity
-                    )
-                    line_items.append(
-                        {
-                            "variant": variant,
-                            "product": variant.product,
-                            "quantity": quantity,
-                            "unit_price": unit_price,
-                            "line_total": line_total,
-                        }
-                    )
-
-                for variant_id, quantity in requested_stock.items():
-                    variant = variants[variant_id]
-                    if variant.stock < quantity:
-                        raise serializers.ValidationError(
-                            {
-                                "error": (
-                                    f"Not enough stock for {variant.product.product_name} "
-                                    f"({variant.size or variant.color_name or 'variant'})."
-                                )
-                            }
-                        )
-
-                discount = self._calculate_discount(redeem_code_obj, subtotal)
-                total = max(subtotal - discount, Decimal("0.00")).quantize(
-                    Decimal("0.01")
-                )
-
-                sale = Sales.objects.create(
-                    costumer_name=user,
-                    redeem_data=redeem_code_obj.name if redeem_code_obj else None,
-                    shipping=shipping_instance,
-                    discount=float(discount),
-                    sub_total=float(subtotal),
-                    total_amt=float(total),
-                    transactionuid=transactionuid,
-                    payment_method=payment_method,
-                    expected_delivery_date=timezone.now().date()
-                    + timedelta(days=get_delivery_estimate_days()),
-                )
-
-                for item in line_items:
-                    Saled_Products.objects.create(
-                        transition=sale,
-                        product=item["product"],
-                        variant=item["variant"],
-                        price=float(item["unit_price"]),
-                        qty=item["quantity"],
-                        total=float(item["line_total"]),
-                    )
-
-                for variant_id, quantity in requested_stock.items():
-                    variant = variants[variant_id]
-                    variant.stock -= quantity
-                    variant.save(update_fields=["stock"])
-
-                if redeem_code_obj:
-                    redeem_code_obj.used = (redeem_code_obj.used or 0) + 1
-                    redeem_code_obj.save(update_fields=["used"])
-        except serializers.ValidationError as exc:
-            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
-        except IntegrityError:
-            return Response(
-                {"error": "This order has already been placed."},
-                status=status.HTTP_409_CONFLICT,
             )
 
+        for variant_id, quantity in requested_stock.items():
+            variant = variants[variant_id]
+            if variant.stock < quantity:
+                raise serializers.ValidationError(
+                    {
+                        "error": (
+                            f"Not enough stock for {variant.product.product_name} "
+                            f"({variant.size or variant.color_name or 'variant'})."
+                        )
+                    }
+                )
+
+        discount = self._calculate_discount(redeem_code_obj, subtotal)
+        total = max(subtotal - discount, Decimal("0.00")).quantize(Decimal("0.01"))
+
+        sale = Sales.objects.create(
+            costumer_name=customer,
+            created_by=created_by,
+            redeem_data=redeem_code_obj.name if redeem_code_obj else None,
+            shipping=shipping_instance,
+            discount=float(discount),
+            sub_total=float(subtotal),
+            total_amt=float(total),
+            transactionuid=transactionuid,
+            payment_method=payment_method,
+            status=default_status,
+            order_source=order_source,
+            direct_purchase=not require_shipping,
+            expected_delivery_date=(
+                timezone.now().date() + timedelta(days=get_delivery_estimate_days())
+                if require_shipping
+                else None
+            ),
+        )
+
+        for item in line_items:
+            Saled_Products.objects.create(
+                transition=sale,
+                product=item["product"],
+                variant=item["variant"],
+                price=float(item["unit_price"]),
+                qty=item["quantity"],
+                total=float(item["line_total"]),
+            )
+
+        for variant_id, quantity in requested_stock.items():
+            variant = variants[variant_id]
+            variant.stock -= quantity
+            variant.save(update_fields=["stock"])
+
+        if redeem_code_obj:
+            redeem_code_obj.used = (redeem_code_obj.used or 0) + 1
+            redeem_code_obj.save(update_fields=["used"])
+
+        return sale
+
+    def _create_order_response(self, sale, status_code=status.HTTP_201_CREATED):
         email_sent = False
         try:
-            context = get_invoice_details(sale, user.email)
-            subject = f"Order Confirmation – #{sale.transactionuid}"
-            body = render_to_string("invoice.html", context)
-            email_sent = send_email(subject, user.email, body)
-        except Exception as e:
-            logger.error(f"Failed to send invoice email for {sale.transactionuid}: {e}")
+            email_sent = self._send_invoice_email(sale)
+        except Exception as exc:
+            logger.error(
+                "Failed to send invoice email for %s: %s",
+                sale.transactionuid,
+                exc,
+            )
 
         message = (
             "Order created and invoice sent."
@@ -445,8 +444,106 @@ class SalesViewSet(viewsets.ModelViewSet):
             else "Order created. Invoice email has been queued for retry."
         )
         return Response(
-            {"success": message, "email_sent": email_sent},
-            status=status.HTTP_201_CREATED,
+            {
+                "success": message,
+                "email_sent": email_sent,
+                "sale": SalesDataSerializer(sale).data,
+            },
+            status=status_code,
+        )
+
+    def create(self, request, *args, **kwargs):
+        """Create a normal website checkout order with delivery."""
+        try:
+            with transaction.atomic():
+                sale = self._create_sale_from_payload(
+                    data=request.data,
+                    customer=request.user,
+                    created_by=request.user,
+                    require_shipping=True,
+                    order_source=Sales.SOURCE_WEB_CHECKOUT,
+                    default_status="pending",
+                )
+        except serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {"error": "This order has already been placed."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return self._create_order_response(sale)
+
+    @action(detail=False, methods=["post"], url_path="pos")
+    def pos(self, request):
+        customer = request.user
+        customer_id = request.data.get("customer_id")
+        if customer_id:
+            try:
+                customer = User.objects.get(id=customer_id)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "Invalid customer user ID."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        order_source = request.data.get("source") or Sales.SOURCE_POS_WEB
+        if order_source not in {Sales.SOURCE_POS_WEB, Sales.SOURCE_POS_LOCAL}:
+            return Response(
+                {"error": "Invalid POS source."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                sale = self._create_sale_from_payload(
+                    data=request.data,
+                    customer=customer,
+                    created_by=request.user,
+                    require_shipping=False,
+                    order_source=order_source,
+                    default_status="successful",
+                )
+        except serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {"error": "This order has already been placed."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return self._create_order_response(sale)
+
+    @action(detail=True, methods=["post"], url_path="send-invoice")
+    def send_invoice(self, request, pk=None):
+        sale = self.get_object()
+        can_manage = (
+            request.user.is_superuser
+            or request.user.has_rbac_permission("orders.manage")
+        )
+        if sale.costumer_name_id != request.user.id and not can_manage:
+            return Response(
+                {"error": "You do not have permission to send this invoice."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            email_sent = self._send_invoice_email(sale)
+        except Exception as exc:
+            logger.error(
+                "Failed to send invoice email for %s: %s",
+                sale.transactionuid,
+                exc,
+            )
+            email_sent = False
+
+        return Response(
+            {
+                "message": (
+                    "Bill sent to customer."
+                    if email_sent
+                    else "Bill email has been queued for retry."
+                ),
+                "email_sent": email_sent,
+            }
         )
 
     def perform_update(self, serializer):

@@ -11,6 +11,7 @@ import {
   useProductsByIdsQuery,
   useUpdateSaleMutation,
   useGetlayoutQuery,
+  useSendSaleInvoiceMutation,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { MapPin, ShoppingCart, Truck } from "lucide-react";
@@ -56,6 +57,7 @@ import {
   type StoreSettings,
 } from "@/lib/store-settings";
 import { PickDropPackDialog } from "../../_componets/pickdrop-pack-dialog";
+import { OrderReceiptActions } from "@/components/billing/order-receipt";
 
 interface Product {
   id: string;
@@ -152,6 +154,8 @@ const ProductCard = ({
   canManageOrders: boolean;
 }) => {
   const [updateSale] = useUpdateSaleMutation();
+  const [sendSaleInvoice, { isLoading: sendingInvoice }] =
+    useSendSaleInvoiceMutation();
   const isUpdatingRef = useRef(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -200,6 +204,15 @@ const ProductCard = ({
       })
       .filter(Boolean) as any[];
   }, [productsTyped, data]);
+
+  const emailBill = async () => {
+    try {
+      const response = await sendSaleInvoice({ id: data.id, token }).unwrap();
+      toast.success(response?.message || "Bill sent to customer");
+    } catch (error: any) {
+      toast.error(error?.data?.error || "Could not send bill email");
+    }
+  };
 
   const truncateText = useCallback(
     (text: string, maxLength: number): string => {
@@ -512,6 +525,14 @@ const ProductCard = ({
           <Separator className="mt-1" />
           <div className="w-full p-1 py-2 flex justify-between items-center">
             <p>Total: रु {data?.total_amt}</p>
+          </div>
+          <div className="flex justify-end pb-2">
+            <OrderReceiptActions
+              order={data}
+              products={productsWithData}
+              onEmail={emailBill}
+              emailLoading={sendingInvoice}
+            />
           </div>
         </div>
       </div>

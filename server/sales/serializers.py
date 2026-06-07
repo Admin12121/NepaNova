@@ -54,18 +54,67 @@ class ShipmentEventSerializer(serializers.ModelSerializer):
 class SaleQuertSetSerializer(serializers.ModelSerializer):
     shipping = DeliveryAddressSerializer(read_only=True)
     shipment = ShipmentSerializer(read_only=True)
+    created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    costumer_email = serializers.EmailField(source="costumer_name.email", read_only=True)
+    costumer_full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Sales
         fields = "__all__"
+
+    def get_created_by_name(self, obj):
+        if not obj.created_by:
+            return None
+        full_name = " ".join(
+            value
+            for value in [obj.created_by.first_name, obj.created_by.last_name]
+            if value
+        )
+        return full_name or obj.created_by.username or obj.created_by.email
+
+    def get_costumer_full_name(self, obj):
+        user = obj.costumer_name
+        if not user:
+            return None
+        full_name = " ".join(
+            value for value in [user.first_name, user.last_name] if value
+        )
+        return full_name or user.username or user.email
+
 
 class SalesDataSerializer(serializers.ModelSerializer):
     products = Saled_ProductsSerializer(many=True, read_only=True)
     costumer_name = serializers.SlugRelatedField(read_only=True, slug_field='username')
     shipping = DeliveryAddressSerializer(read_only=True)
     shipment = ShipmentSerializer(read_only=True)
+    created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    costumer_email = serializers.EmailField(source="costumer_name.email", read_only=True)
+    costumer_full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Sales
         fields = "__all__"
+
+    def get_created_by_name(self, obj):
+        if not obj.created_by:
+            return None
+        full_name = " ".join(
+            value
+            for value in [obj.created_by.first_name, obj.created_by.last_name]
+            if value
+        )
+        return full_name or obj.created_by.username or obj.created_by.email
+
+    def get_costumer_full_name(self, obj):
+        user = obj.costumer_name
+        if not user:
+            return None
+        full_name = " ".join(
+            value for value in [user.first_name, user.last_name] if value
+        )
+        return full_name or user.username or user.email
 
 class SalesPostDataSerializer(serializers.ModelSerializer):
     products = Saled_ProductsSerializer(many=True, read_only=True)

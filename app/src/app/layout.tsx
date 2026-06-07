@@ -64,7 +64,9 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   const cookieStore = await cookies();
-  const hasAccepted = cookieStore.get("accept")?.value;
+  const hasAccepted =
+    cookieStore.get("cookie_consent")?.value === "accepted" ||
+    cookieStore.get("accept")?.value === "true";
 
   return (
 

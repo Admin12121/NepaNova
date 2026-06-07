@@ -11,6 +11,7 @@ import {
   useProductsByIdsQuery,
   useUpdateSaleMutation,
   useGetlayoutQuery,
+  useSendSaleInvoiceMutation,
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { MapPin, ShoppingCart, Truck } from "lucide-react";
@@ -42,6 +43,7 @@ import {
   getStoreSettings,
   type StoreSettings,
 } from "@/lib/store-settings";
+import { OrderReceiptActions } from "@/components/billing/order-receipt";
 
 interface Product {
   id: number;
@@ -134,6 +136,8 @@ const ProductCard = ({
   storeSettings: StoreSettings;
 }) => {
   const [updateSale] = useUpdateSaleMutation();
+  const [sendSaleInvoice, { isLoading: sendingInvoice }] =
+    useSendSaleInvoiceMutation();
   const isActionInProgressRef = useRef(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const productIds = useMemo(() => {
@@ -168,6 +172,15 @@ const ProductCard = ({
       };
     });
   }, [products, data]);
+
+  const emailBill = async () => {
+    try {
+      const response = await sendSaleInvoice({ id: data.id, token }).unwrap();
+      toast.success(response?.message || "Bill sent to your email");
+    } catch (error: any) {
+      toast.error(error?.data?.error || "Could not send bill email");
+    }
+  };
 
   const truncateText = useCallback(
     (text: string, maxLength: number): string => {
@@ -341,6 +354,14 @@ const ProductCard = ({
             </p>
           </div>
           {data.status === "unpaid" && <Complete_payment data={data} />}
+        </div>
+        <div className="flex justify-end pb-2">
+          <OrderReceiptActions
+            order={data}
+            products={productsWithData}
+            onEmail={emailBill}
+            emailLoading={sendingInvoice}
+          />
         </div>
       </div>
     </div>

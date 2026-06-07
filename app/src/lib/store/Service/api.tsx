@@ -1010,6 +1010,23 @@ export const userAuthapi = createApi({
       ],
     }),
 
+    postPosSale: builder.mutation({
+      query: ({ actualData, token }) => ({
+        url: `api/sales/sales/pos/`,
+        method: "POST",
+        body: actualData,
+        headers: createHeaders(token),
+      }),
+      invalidatesTags: [
+        { type: "Orders", id: "LIST" },
+        { type: "DashboardStats", id: "LIST" },
+        { type: "SalesChart", id: "LIST" },
+        { type: "RecentOrders", id: "LIST" },
+        { type: "Stocks", id: "LIST" },
+        { type: "Products", id: "LIST" },
+      ],
+    }),
+
     getOrders: builder.query({
       query: ({ token, status, search, rowsperpage, page }) => ({
         url: `api/sales/sales/${
@@ -1117,6 +1134,14 @@ export const userAuthapi = createApi({
       providesTags: (_result: any, _error: any, arg: any) => [
         { type: "OrderDetail" as const, id: arg.transactionuid },
       ],
+    }),
+
+    sendSaleInvoice: builder.mutation({
+      query: ({ id, token }) => ({
+        url: `api/sales/sales/${id}/send-invoice/`,
+        method: "POST",
+        headers: createHeaders(token),
+      }),
     }),
 
     // ==================== SHIPPING API ====================
@@ -1347,15 +1372,17 @@ export const {
   useGetUserReviewQuery,
   useGetPendingReviewsQuery,
   // Sales / Orders
-  usePostSaleMutation,
-  useGetOrdersQuery,
-  useGetStocksQuery,
-  useUpdateSaleMutation,
+	  usePostSaleMutation,
+	  usePostPosSaleMutation,
+	  useGetOrdersQuery,
+	  useGetStocksQuery,
+	  useUpdateSaleMutation,
   useLazyGetPickdropPayloadQuery,
   usePackWithPickdropMutation,
   useDeleteSaleMutation,
-  useSalesRetrieveQuery,
-  useLazySalesRetrieveQuery,
+	  useSalesRetrieveQuery,
+	  useLazySalesRetrieveQuery,
+	  useSendSaleInvoiceMutation,
   // Shipping
   useGetshippingQuery,
   useGetdefaultshippingQuery,

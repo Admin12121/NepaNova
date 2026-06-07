@@ -22,7 +22,23 @@ class Redeem_Code(models.Model):
 
 
 class Sales(models.Model):
+    SOURCE_WEB_CHECKOUT = "web_checkout"
+    SOURCE_POS_WEB = "pos_web"
+    SOURCE_POS_LOCAL = "pos_local"
+    SOURCE_CHOICES = [
+        (SOURCE_WEB_CHECKOUT, "Web checkout"),
+        (SOURCE_POS_WEB, "Web POS"),
+        (SOURCE_POS_LOCAL, "Local POS"),
+    ]
+
     costumer_name = models.ForeignKey(User, on_delete=models.SET_DEFAULT, default=None)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_sales_orders",
+    )
     transactionuid = models.CharField(max_length=225, null=True, blank=True, unique=True)
     status = models.CharField(
         max_length=10,
@@ -52,6 +68,12 @@ class Sales(models.Model):
     redeem_data = models.CharField(max_length=100, null=True, blank=True)
     payment_intent_id = models.CharField(max_length=100, null=True, blank=True)
     payment_json = models.TextField(null=True, blank=True)
+    order_source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_WEB_CHECKOUT,
+    )
+    direct_purchase = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     expected_delivery_date = models.DateField(null=True, blank=True)
