@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils";
 import { useCallback, useDeferredValue, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { formatVariantSummary } from "@/lib/variant-attributes";
+import {
+  getProductImageSrc,
+  shouldCoverProductImage,
+} from "@/lib/product-image";
 
 const Voucher = ({
   data,
@@ -29,9 +33,8 @@ const Voucher = ({
     },
     [],
   );
-  const baseName = data.images.image.split("/").pop()?.split(".")[0] ?? "";
-  const cleanBase = baseName.replace(/_[A-Za-z0-9]{7,}$/, "");
-  const isFullCover = cleanBase.endsWith("not");
+  const imageSrc = getProductImageSrc(data.images);
+  const isFullCover = shouldCoverProductImage(imageSrc);
   const imageClassName = isFullCover ? "w-full h-full object-cover" : "";
   return (
     <Card className="p-1 w-full rounded-lg shadow-none bg-transparent h-[90px] bg-white dark:bg-neutral-900">
@@ -41,7 +44,7 @@ const Voucher = ({
             <Image
               alt="nextui logo"
               height={100}
-              src={data.images.image}
+              src={imageSrc}
               width={80}
               className={cn(
                 "w-[80px] h-full object-contain rounded-sm",

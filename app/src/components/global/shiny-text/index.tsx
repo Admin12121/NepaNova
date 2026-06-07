@@ -10,7 +10,7 @@ const ShinyText = ({ text, duration = 2, delay = 0 }: ShinyTextProps) => {
   const width = text.length * 2;
 
   return (
-    <motion.p
+    <motion.span
       initial={{ backgroundPosition: "100% center" }}
       animate={{ backgroundPosition: "0% center" }}
       transition={{
@@ -27,7 +27,7 @@ const ShinyText = ({ text, duration = 2, delay = 0 }: ShinyTextProps) => {
       }}
     >
       {text}
-    </motion.p>
+    </motion.span>
   );
 };
 

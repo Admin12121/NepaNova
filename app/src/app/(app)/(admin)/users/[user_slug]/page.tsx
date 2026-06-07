@@ -1,10 +1,11 @@
-import React from 'react'
-import User from './_components'
+import User from "./_components";
 
-const page = () => {
-  return (
-    <User/>
-  )
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ user_slug: string }>;
+}) {
+  const userSlug = decodeURIComponent((await params).user_slug);
+
+  return <User userSlug={userSlug} />;
 }
-
-export default page

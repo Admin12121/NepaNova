@@ -149,8 +149,30 @@ export const userAuthapi = createApi({
           : [{ type: "Users" as const, id: "LIST" }],
     }),
 
-    getLoggedUser: builder.query({
-      query: ({ token }) => ({
+    adminUserDetail: builder.query({
+      query: ({ username, token }) => ({
+        url: `api/accounts/admin-users/by-username/${username}/`,
+        method: "GET",
+        headers: createHeaders(token),
+      }),
+      providesTags: (_result: any, _error: any, arg: any) => [
+        { type: "Users" as const, id: arg.username },
+      ],
+    }),
+
+    adminUserById: builder.query({
+      query: ({ id, token }) => ({
+        url: `api/accounts/admin-users/${id}/`,
+        method: "GET",
+        headers: createHeaders(token),
+      }),
+      providesTags: (_result: any, _error: any, arg: any) => [
+        { type: "Users" as const, id: arg.id },
+      ],
+    }),
+	
+	    getLoggedUser: builder.query({
+	      query: ({ token }) => ({
         url: "api/accounts/users/me/",
         method: "GET",
         headers: createHeaders(token),
@@ -1258,6 +1280,8 @@ export const {
   // Auth & User
   useUserDeviceMutation,
   useAllUsersQuery,
+  useAdminUserDetailQuery,
+  useAdminUserByIdQuery,
   useGetLoggedUserQuery,
   useGetUserProfileQuery,
   useUpdateUserProfileMutation,
@@ -1331,6 +1355,7 @@ export const {
   usePackWithPickdropMutation,
   useDeleteSaleMutation,
   useSalesRetrieveQuery,
+  useLazySalesRetrieveQuery,
   // Shipping
   useGetshippingQuery,
   useGetdefaultshippingQuery,

@@ -161,6 +161,9 @@ const ProductCard = ({
   const [delayReason, setDelayReason] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [packDialogOpen, setPackDialogOpen] = useState(false);
+  const isDeliveryDateLocked = ["delivered", "successful"].includes(data.status);
+  const canUpdateDeliveryDate =
+    canManageOrders && !isDeliveryDateLocked;
 
   const productIds = useMemo(() => {
     return data?.products.map((item: CartItem) => item.product);
@@ -228,6 +231,12 @@ const ProductCard = ({
       });
       return;
     }
+    if (isDeliveryDateLocked) {
+      toast.error("Delivery date cannot be updated after delivery", {
+        position: "top-center",
+      });
+      return;
+    }
     if (!date) return;
     setPendingDate(date);
     setDelayReason("");
@@ -240,6 +249,12 @@ const ProductCard = ({
     if (!pendingDate) return;
     if (!canManageOrders) {
       toast.error("You do not have permission to manage orders", {
+        position: "top-center",
+      });
+      return;
+    }
+    if (isDeliveryDateLocked) {
+      toast.error("Delivery date cannot be updated after delivery", {
         position: "top-center",
       });
       return;
@@ -433,16 +448,16 @@ const ProductCard = ({
             </span>
           </div>
           <div className="w-full p-2 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 rounded-lg">
-            <span className="p-2 border-1 rounded-xl">
-              <p className="text-sm flex items-center gap-1">
+            <div className="p-2 border-1 rounded-xl">
+              <div className="text-sm flex items-center gap-1">
                 <Truck className="w-4 h-4" /> {storeSettings.originCity},{" "}
                 {storeSettings.originCountry}
-              </p>
-            </span>
-            <span className="flex items-center justify-center">
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
               <LeftIcon className="dark:fill-white/70 dark:stroke-white/70 stroke-neutral-700 hidden lg:flex" />
-              <span className="p-2 border-1 rounded-xl flex items-center gap-2">
-                <p className="text-sm text-neutral-500">
+              <div className="p-2 border-1 rounded-xl flex items-center gap-2">
+                <div className="text-sm text-neutral-500">
                   Estimated arrival:{" "}
                   {data.expected_delivery_date
                     ? formatDate(new Date(data.expected_delivery_date))
@@ -450,8 +465,8 @@ const ProductCard = ({
                         data?.created,
                         storeSettings.deliveryEstimateDays,
                       )}
-                </p>
-                {canManageOrders && (
+                </div>
+                {canUpdateDeliveryDate && (
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -477,15 +492,15 @@ const ProductCard = ({
                     </PopoverContent>
                   </Popover>
                 )}
-              </span>
+              </div>
               <RightIcon className="dark:fill-white/70 dark:stroke-white/70 stroke-neutral-700 hidden lg:flex" />
-            </span>
-            <span className="p-2 border-1 rounded-xl">
-              <p className="text-sm flex items-center gap-1">
+            </div>
+            <div className="p-2 border-1 rounded-xl">
+              <div className="text-sm flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {data?.shipping?.city}, {data?.shipping?.country}
-              </p>
-            </span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="p-2 pb-0 flex gap-2 flex-col">

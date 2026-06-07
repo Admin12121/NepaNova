@@ -41,6 +41,10 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formatVariantSummary } from "@/lib/variant-attributes";
+import {
+  getProductImageSrc,
+  shouldCoverProductImage,
+} from "@/lib/product-image";
 
 const schema = z.object({
   code: z.string().min(1, { message: "Code is required" }),
@@ -389,9 +393,8 @@ const CartItem = ({
     return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
   };
 
-  const baseName = data.images.image.split("/").pop()?.split(".")[0] ?? "";
-  const cleanBase = baseName.replace(/_[A-Za-z0-9]{7,}$/, "");
-  const isFullCover = cleanBase.endsWith("not");
+  const imageSrc = getProductImageSrc(data.images);
+  const isFullCover = shouldCoverProductImage(imageSrc);
   const imageClassName = isFullCover ? "w-full h-full object-cover" : "";
 
   return (
@@ -405,7 +408,7 @@ const CartItem = ({
             <Image
               alt="nextui logo"
               height={100}
-              src={data.images.image}
+              src={imageSrc}
               width={100}
               className={cn(
                 "w-[80px] h-full object-contain rounded-sm",

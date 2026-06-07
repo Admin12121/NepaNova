@@ -37,6 +37,32 @@ interface UserWithToken extends User {
   message?: string;
 }
 
+const getApiBaseUrl = () => {
+  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) {
+    throw new Error("Authentication API URL is not configured");
+  }
+
+  return apiUrl.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
+};
+
+const parseJsonResponse = async (response: Response) => {
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      "Authentication API returned a non-JSON response. Check API_URL/NEXT_PUBLIC_API_URL points to the Django API host.",
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Authentication API returned invalid JSON");
+  }
+};
+
 export default {
   pages: {
     signIn: "/auth/login",
@@ -55,7 +81,7 @@ export default {
         }
         const { email, password } = ValidateFields.data;
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/users/login/`,
+          `${getApiBaseUrl()}/api/accounts/users/login/`,
           {
             method: "POST",
             headers: {
@@ -64,7 +90,7 @@ export default {
             body: JSON.stringify({ email, password }),
           },
         );
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
           const errorMessage = data.error || "Failed to log in";
           throw new Error(errorMessage);
@@ -93,7 +119,7 @@ export default {
       }
       if (account?.provider !== "credentials") {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/accounts/users/social_login/`,
+          `${getApiBaseUrl()}/api/accounts/users/social_login/`,
           {
             method: "POST",
             headers: {
@@ -109,14 +135,13 @@ export default {
           },
         );
 
+        const data = await parseJsonResponse(response);
         if (!response.ok) {
-          const errorData = await response.json();
           throw new Error(
-            errorData.error || "Failed to process social login with Django",
+            data.error || "Failed to process social login with Django",
           );
         }
 
-        const data = await response.json();
         if (data.token) {
           userWithToken.token = {
             access: data.token.access,

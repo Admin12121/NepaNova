@@ -71,7 +71,7 @@ export function SiteHeader({ children }: { children: React.ReactNode }) {
               >
                 Terms of Service
               </Link>
-              <p>.</p>
+              <span aria-hidden="true">.</span>
               <Link
                 className="hover:dark:text-white transition duration-500"
                 href="/privacy-policy"
@@ -81,7 +81,7 @@ export function SiteHeader({ children }: { children: React.ReactNode }) {
             </span>
           </div>
         </div>
-        <div className="max-w-[95rem] flex md:hidden h-16 bottom-0 fixed z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-none border-0">
+        <div className="max-w-[95rem] flex md:hidden h-16 bottom-0 fixed z-50 w-full bg-background/95 backdrop-blur-[20px] supports-[backdrop-filter]:bg-background/60 border-none border-0">
           <div className="flex w-full h-full items-center px-4 gap-2 justify-between">
             <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
               <Link
