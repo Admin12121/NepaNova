@@ -356,12 +356,6 @@ const Checkout = ({ params }: { params: string }) => {
             <GradientText element="H2" className="text-4xl font-semibold py-1">
               Proceed to Payment
             </GradientText>
-            <Address
-              accessToken={accessToken}
-              shipping={state.shipping}
-              dispatch={dispatch}
-              defadd={defadd}
-            />
             <VoucherSkleton loading={isLoading}>
               {state.cartItemsWithDetails &&
                 state.cartItemsWithDetails.map((product: any) => {
@@ -397,7 +391,7 @@ const Checkout = ({ params }: { params: string }) => {
                 )}
               </span>
             </form>
-            <Card className="min-h-[105px] bg-white dark:bg-neutral-900 lg:mb-28">
+            <Card className="min-h-[105px] bg-white dark:bg-neutral-900">
               <CardBody className="flex text-sm gap-1 flex-col">
                 <span className="flex w-full justify-between items-center">
                   <p>Subtotal • {totalPieces} items</p>
@@ -436,6 +430,13 @@ const Checkout = ({ params }: { params: string }) => {
                 </span>
               </CardBody>
             </Card>
+            <Address
+              accessToken={accessToken}
+              shipping={state.shipping}
+              dispatch={dispatch}
+              defadd={defadd}
+              className="lg:mb-28"
+            />
           </span>
         </div>
       </div>

@@ -12,6 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useGetshippingQuery } from "@/lib/store/Service/api";
 import Shipping from "./shipping";
+import { cn } from "@/lib/utils";
 
 interface AddressItem {
   id: number;
@@ -28,11 +29,13 @@ const Address = ({
   shipping,
   dispatch,
   defadd,
+  className,
 }: {
   accessToken?: string;
   shipping: string;
   dispatch: any;
   defadd: string;
+  className?: string;
 }) => {
   const {
     data: Address,
@@ -67,7 +70,7 @@ const Address = ({
 
   if (!shipping) {
     return (
-      <div className="text-left hover:no-underline pl-2 py-3 lg:min-w-[450px] space-y-2 rounded-lg shadow-none bg-white dark:bg-neutral-900 px-2 transition-all ">
+      <div className={cn("text-left hover:no-underline pl-2 py-3 lg:min-w-[450px] space-y-2 rounded-lg shadow-none bg-white dark:bg-neutral-900 px-2 transition-all ", className)}>
         <h1 className="flex gap-1 items-center font-normal">
           {" "}
           <MapPin className="w-4 h-4" /> Add Shipping Address
@@ -79,7 +82,7 @@ const Address = ({
 
   return (
     <>
-      <Accordion type="single" collapsible className="space-y-1">
+      <Accordion type="single" collapsible className={cn("space-y-1", className)}>
         <AccordionItem
           value={`address`}
           className="rounded-lg shadow-none bg-white dark:bg-neutral-900 px-2 transition-all "
