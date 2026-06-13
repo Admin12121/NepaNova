@@ -183,7 +183,7 @@ const Stocks = () => {
   }, [data, replace]);
 
   return (
-    <main className="w-full h-full pb-10 min-h-[calc(100dvh_-_145px)] flex px-2 flex-col gap-2">
+    <main className="w-full h-full pb-10 min-h-[calc(100dvh_-_145px)] flex px-2 flex-col gap-2 mt-3">
       <span className="flex flex-col md:flex-row justify-end">
         <div className="relative">
           <Input

@@ -180,7 +180,7 @@ const AddProduct = () => {
 
   return (
     <form
-      className="flex flex-col gap-5 px-2 md:px-5 pb-5 w-full h-[90dvh]"
+      className="flex flex-col gap-5 p-3 mt-10 w-full h-[90dvh]"
       onSubmit={form.handleSubmit(onSubmit)}
     >
       <Button className="absolute right-2 top-2" type="submit">

@@ -1,8 +1,11 @@
 import logging
 import re
+from datetime import timedelta
+from urllib.parse import unquote
 
 import requests
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -34,6 +37,7 @@ from .utils import (
     generate_token,
     is_otp_valid,
     send_email,
+    send_phone_otp,
     sync_resend_contact,
 )
 
@@ -49,6 +53,33 @@ def get_tokens_for_user(user):
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
+
+
+PHONE_OTP_TTL_SECONDS = 5 * 60
+PHONE_OTP_COOLDOWN_SECONDS = 60
+PHONE_OTP_MAX_PER_HOUR = 5
+PHONE_OTP_MAX_ATTEMPTS = 5
+
+
+def normalize_nepali_phone(value):
+    phone = re.sub(r"[\s\-().]", "", str(value or ""))
+    if phone.startswith("+"):
+        phone = phone[1:]
+    if phone.startswith("977"):
+        phone = phone[3:]
+    if phone.startswith("0") and len(phone) == 11:
+        phone = phone[1:]
+    if not re.fullmatch(r"(97|98)\d{8}", phone):
+        raise ValueError("Enter a valid Nepali mobile number.")
+    return phone
+
+
+class PhoneOtpRequestThrottle(AnonRateThrottle):
+    rate = "5/hour"
+
+
+class PhoneOtpVerifyThrottle(AnonRateThrottle):
+    rate = "20/hour"
 
 
 class CustomPagination(PageNumberPagination):
@@ -269,7 +300,13 @@ class UserViewSet(viewsets.ModelViewSet):
         elif self.action == "destroy":
             self.permission_classes = [HasRbacPermission]
             self.required_permission = "users.manage"
-        elif self.action in ["create", "login", "social_login"]:
+        elif self.action in [
+            "create",
+            "login",
+            "social_login",
+            "request_phone_otp",
+            "verify_phone_otp",
+        ]:
             self.permission_classes = [AllowAny]
         elif self.action in ["update", "partial_update", "me", "device"]:
             self.permission_classes = [IsAuthenticated]
@@ -400,6 +437,160 @@ class UserViewSet(viewsets.ModelViewSet):
                 user.profile.save(filename, ContentFile(response.content), save=True)
         except Exception as e:
             logger.error("Failed to save avatar for %s: %s", username, e)
+
+    def _get_or_create_phone_user(self, phone):
+        UserModel = get_user_model()
+        user, created = UserModel.objects.get_or_create(
+            phone=phone,
+            defaults={
+                "email": f"phone-{phone}@phone.nepanova.local",
+                "username": f"phone_{phone[-4:]}_{get_random_string(6).lower()}",
+                "first_name": "Phone",
+                "last_name": "User",
+                "state": "active",
+            },
+        )
+
+        if created:
+            user.set_unusable_password()
+            user.save(update_fields=["password"])
+            assign_default_roles(user, assigned_by=user)
+
+        return user
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="phone-otp/request",
+        permission_classes=[AllowAny],
+        throttle_classes=[PhoneOtpRequestThrottle],
+    )
+    def request_phone_otp(self, request):
+        try:
+            phone = normalize_nepali_phone(request.data.get("phone"))
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        recent_otp = PhoneLoginOtp.objects.filter(phone=phone).first()
+        if (
+            recent_otp
+            and (now - recent_otp.created_at).total_seconds()
+            < PHONE_OTP_COOLDOWN_SECONDS
+        ):
+            retry_after = PHONE_OTP_COOLDOWN_SECONDS - int(
+                (now - recent_otp.created_at).total_seconds()
+            )
+            return Response(
+                {
+                    "error": "Please wait before requesting another OTP.",
+                    "retry_after": max(retry_after, 1),
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        hourly_count = PhoneLoginOtp.objects.filter(
+            phone=phone,
+            created_at__gte=now - timedelta(hours=1),
+        ).count()
+        if hourly_count >= PHONE_OTP_MAX_PER_HOUR:
+            return Response(
+                {"error": "Too many OTP requests. Please try again later."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        otp = generate_otp()
+        if not send_phone_otp(phone, otp):
+            return Response(
+                {"error": "Could not send OTP right now. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        PhoneLoginOtp.objects.create(
+            phone=phone,
+            otp_hash=make_password(otp),
+            expires_at=now + timedelta(seconds=PHONE_OTP_TTL_SECONDS),
+        )
+        return Response(
+            {
+                "message": "OTP sent successfully.",
+                "expires_in": PHONE_OTP_TTL_SECONDS,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="phone-otp/verify",
+        permission_classes=[AllowAny],
+        throttle_classes=[PhoneOtpVerifyThrottle],
+    )
+    def verify_phone_otp(self, request):
+        try:
+            phone = normalize_nepali_phone(request.data.get("phone"))
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = re.sub(r"\D", "", str(request.data.get("otp") or ""))
+        if not re.fullmatch(r"\d{6}", otp):
+            return Response(
+                {"error": "Enter the 6 digit OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        challenge = (
+            PhoneLoginOtp.objects.filter(
+                phone=phone,
+                consumed_at__isnull=True,
+                expires_at__gt=now,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        invalid_response = Response(
+            {"error": "Invalid or expired OTP."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        if not challenge:
+            return invalid_response
+
+        if challenge.attempts >= PHONE_OTP_MAX_ATTEMPTS:
+            return Response(
+                {"error": "Too many verification attempts. Request a new OTP."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        if not check_password(otp, challenge.otp_hash):
+            challenge.attempts += 1
+            challenge.save(update_fields=["attempts"])
+            return invalid_response
+
+        with transaction.atomic():
+            challenge.consumed_at = now
+            challenge.save(update_fields=["consumed_at"])
+            user = self._get_or_create_phone_user(phone)
+
+        if user.state == "blocked":
+            return Response(
+                {
+                    "error": (
+                        "Your account has been suspended due to a violation of our "
+                        "Terms and Conditions. For more details or inquiries, "
+                        "contact us at info@nepanova.com"
+                    ),
+                    "blocked": True,
+                    "terms_url": "/terms-of-service",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        tokens = get_tokens_for_user(user)
+        return Response(
+            {"message": "Login successful!", "token": tokens},
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=["post"])
     def login(self, request):
@@ -652,13 +843,19 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="by-username/(?P<username>[^/.]+)")
+    @action(detail=False, methods=["get"], url_path="by-username/(?P<username>.+)")
     def retrieve_user_by_username(self, request, username=None):
+        identifier = unquote(username or "").strip()
         try:
-            user = User.objects.get(username=username)
+            user = User.objects.get(username=identifier)
         except User.DoesNotExist:
             return Response(
                 {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except User.MultipleObjectsReturned:
+            return Response(
+                {"error": "Multiple users matched this identifier."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = UserDetailSerializer(user, context={"request": request})

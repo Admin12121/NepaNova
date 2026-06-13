@@ -46,7 +46,7 @@ class UserDataSerializer(serializers.ModelSerializer):
             'id', 'email', 'profile', 'username', 'last_name', 'first_name',
             'role', 'state', 'is_admin', 'is_superuser', 'created_at',
             'updated_at', 'last_login', 'gender', 'dob', 'roles',
-            'permissions', 'provider'
+            'permissions', 'provider', 'phone'
         ]
         read_only_fields = [
             'id', 'is_admin', 'is_superuser', 'created_at', 'updated_at',
@@ -69,8 +69,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id','email', 'profile', 'username', 
-            'last_name', 'first_name', 'role', 'roles', 'permissions', 'gender', 'dob'
+            'id','email', 'profile', 'username',
+            'last_name', 'first_name', 'role', 'roles', 'permissions', 'gender', 'dob',
+            'phone'
         ]
 
     def get_roles(self, obj):
@@ -108,7 +109,7 @@ class AdminUserDataSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'profile', 'username', 'last_name', 'first_name',
             'role', 'state', 'is_admin', 'is_superuser', 'created_at',
-            'updated_at', 'last_login', 'gender', 'dob', 'provider'
+            'updated_at', 'last_login', 'gender', 'dob', 'provider', 'phone'
         ]
         read_only_fields = [
             'id', 'is_admin', 'is_superuser', 'created_at', 'updated_at',

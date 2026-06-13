@@ -1,6 +1,6 @@
 import type { NextAuthConfig, User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { LoginSchema } from "@/schemas";
+import { LoginSchema, PhoneOtpLoginSchema } from "@/schemas";
 import type { JWT } from "next-auth/jwt";
 import type { Session } from "next-auth";
 import Google from "next-auth/providers/google";
@@ -38,7 +38,7 @@ interface UserWithToken extends User {
 }
 
 const getApiBaseUrl = () => {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) {
     throw new Error("Authentication API URL is not configured");
   }
@@ -75,6 +75,35 @@ export default {
     }),
     Credentials({
       async authorize(credentials) {
+        if (credentials?.authType === "phone_otp") {
+          const validatedFields = PhoneOtpLoginSchema.safeParse(credentials);
+          if (!validatedFields.success) {
+            return null;
+          }
+
+          const { phone, otp } = validatedFields.data;
+          const response = await fetch(
+            `${getApiBaseUrl()}/api/accounts/users/phone-otp/verify/`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ phone, otp }),
+            },
+          );
+          const data = await parseJsonResponse(response);
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to verify OTP");
+          }
+
+          return {
+            id: phone,
+            token: data.token,
+            name: phone,
+          } as UserWithToken;
+        }
+
         const ValidateFields = LoginSchema.safeParse(credentials);
         if (!ValidateFields.success) {
           return null;

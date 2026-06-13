@@ -443,10 +443,12 @@ export default function UserTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[160px]">
-	                  <DropdownMenuItem
-	                    className="cursor-pointer"
-	                    onClick={() => router.push(`/users/${users.username}`)}
-	                  >
+		                  <DropdownMenuItem
+		                    className="cursor-pointer"
+		                    onClick={() =>
+		                      router.push(`/users/${encodeURIComponent(users.username)}`)
+		                    }
+		                  >
 	                    View
 	                  </DropdownMenuItem>
 	                  <DropdownMenuItem

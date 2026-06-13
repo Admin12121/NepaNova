@@ -4,10 +4,8 @@ import {
   UserRound,
   Package,
   BadgePercent,
-  ShoppingCart,
   MessageCircle,
   Mail,
-  BookOpenText,
   ShieldCheck,
 } from "lucide-react";
 
@@ -48,14 +46,8 @@ export const Links = [
   {
     title: "Sales",
     icon: BadgePercent,
-    collapsible: true,
-    isactive: true,
     href: "/sales",
     requiredPermission: "orders.view",
-    subLinks: [
-      { title: "Orders", href: "/sales", requiredPermission: "orders.view" },
-      { title: "POS", href: "/sales/pos", requiredPermission: "orders.manage", icon: ShoppingCart },
-    ],
   },
   {
     title: "Reviews",

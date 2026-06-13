@@ -20,6 +20,15 @@ export const LoginSchema = z.object({
     password: z.string().min(1, {message:"Password is required"}),
 });
 
+export const PhoneOtpRequestSchema = z.object({
+    phone: z.string().min(10, {message:"Phone number is required"}),
+});
+
+export const PhoneOtpLoginSchema = z.object({
+    phone: z.string().min(10, {message:"Phone number is required"}),
+    otp: z.string().regex(/^\d{6}$/, {message:"Enter the 6 digit OTP"}),
+});
+
 export const RegisterSchema = z.object({
     username: z.string().min(3,{message:"Name must be at least 3 characters long"}),
     email: z.string().email({message:"Email is required"}),

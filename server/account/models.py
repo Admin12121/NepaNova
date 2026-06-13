@@ -64,6 +64,7 @@ class User(AbstractBaseUser):
     last_name = models.CharField(max_length=200, blank=True)
     username = models.CharField(max_length=200, blank=True, null=True, unique=True)
     email = models.EmailField(verbose_name="Email", max_length=255, unique=True)
+    phone = models.CharField(max_length=15, unique=True, null=True, blank=True)
     profile = models.ImageField(
         upload_to="profile/",
         null=True,
@@ -233,6 +234,25 @@ class Account(models.Model):
 
     class Meta:
         db_table = "accounts"
+
+
+class PhoneLoginOtp(models.Model):
+    phone = models.CharField(max_length=15, db_index=True)
+    otp_hash = models.CharField(max_length=255)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    expires_at = models.DateTimeField(db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["phone", "created_at"]),
+            models.Index(fields=["phone", "consumed_at", "expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.phone} - {self.created_at:%Y-%m-%d %H:%M:%S}"
 
 
 class DeliveryAddress(models.Model):

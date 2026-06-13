@@ -1,6 +1,7 @@
 import logging
 import secrets
 
+import requests
 import resend
 from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -90,6 +91,44 @@ def send_email(subject, email, body, queue_on_failure=True):
         logger.error("Resend error while sending email to %s: %s", recipients, ex)
         if queue_on_failure:
             queue_email(subject, recipients, body, str(ex))
+
+    return False
+
+
+def send_phone_otp(phone, otp):
+    """Send an OTP using the approved NestSMS template flow."""
+    if not settings.NESTSMS_API_KEY or not settings.NESTSMS_OTP_TEMPLATE_ID:
+        logger.error("Phone OTP skipped because NestSMS is not configured.")
+        return False
+
+    payload = {
+        "to": phone,
+        "template_id": settings.NESTSMS_OTP_TEMPLATE_ID,
+        "message_type": "otp",
+        "type": "text",
+        "variables": {
+            "otp": otp,
+            "app_name": settings.NESTSMS_APP_NAME,
+        },
+    }
+    if settings.NESTSMS_SENDER_ID:
+        payload["sender_id"] = settings.NESTSMS_SENDER_ID
+
+    try:
+        response = requests.post(
+            f"{settings.NESTSMS_BASE_URL}/send",
+            headers={
+                "X-API-Key": settings.NESTSMS_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=settings.NESTSMS_TIMEOUT_SECONDS,
+        )
+        if response.ok:
+            return True
+        logger.error("NestSMS OTP send failed: %s %s", response.status_code, response.text)
+    except Exception as ex:
+        logger.error("NestSMS OTP send error for %s: %s", phone, ex)
 
     return False
 

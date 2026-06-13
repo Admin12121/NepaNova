@@ -26,11 +26,15 @@ const Footer = () => {
         />
       </div>
       <section className="flex flex-col gap-10 justify-between lg:flex-row lg:gap-20">
-        <section className=" lg:w-[500px]">
+        <section className=" lg:w-[500px] grid grid-cols-3 gap-5">
           <Link href="/" className="flex w-fit items-center space-x-2">
             <Image src="/full_logo.webp" width={150} height={40} alt="logo" />
             <span className="sr-only">Home</span>
           </Link>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground col-span-2">
+            NepaNova Impact connects everyday shopping with transparent
+            community support, curated local products, and responsible service.
+          </p>
         </section>
         <section className="grid flex-1 grid-cols-1 gap-10 xxs:grid-cols-2 sm:grid-cols-3">
           {siteConfig.footerNav.map((item) => (

@@ -4,5 +4,5 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  return <section className="p-5">{children}</section>;
+  return <section>{children}</section>;
 }

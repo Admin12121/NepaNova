@@ -123,11 +123,11 @@ export const userAuthapi = createApi({
     }),
 
     allUsers: builder.query({
-      query: ({ username, search, rowsperpage, page, exclude_by, token }) => {
-        return {
-          url: `api/accounts/admin-users/${
-            username ? `by-username/${username}/` : ""
-          }${buildQueryParams({
+	      query: ({ username, search, rowsperpage, page, exclude_by, token }) => {
+	        return {
+	          url: `api/accounts/admin-users/${
+	            username ? `by-username/${encodeURIComponent(username)}/` : ""
+	          }${buildQueryParams({
             search,
             page_size: rowsperpage,
             page,
@@ -151,7 +151,9 @@ export const userAuthapi = createApi({
 
     adminUserDetail: builder.query({
       query: ({ username, token }) => ({
-        url: `api/accounts/admin-users/by-username/${username}/`,
+        url: `api/accounts/admin-users/by-username/${encodeURIComponent(
+          username,
+        )}/`,
         method: "GET",
         headers: createHeaders(token),
       }),

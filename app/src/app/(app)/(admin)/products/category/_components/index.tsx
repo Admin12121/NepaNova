@@ -146,7 +146,7 @@ const CategoryComponent = () => {
   }, [deleteCategory, accessToken, refetch]);
 
   return (
-    <main className="w-full h-full pb-10 min-h-[calc(100dvh_-_145px)] flex px-2 flex-col gap-2">
+    <main className="w-full h-full pb-10 min-h-[calc(100dvh_-_145px)] flex px-2 flex-col gap-2 mt-3">
       <Accordion type="single" collapsible className="space-y-1 w-full">
         <AccordionItem
           value="add-category"

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useDeferredValue, useMemo, useState } from "react";
+import Image from "next/image";
 import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { OrderReceiptActions } from "@/components/billing/order-receipt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +23,7 @@ import {
   useProductsViewQuery,
 } from "@/lib/store/Service/api";
 import { formatVariantSummary } from "@/lib/variant-attributes";
+import { cn } from "@/lib/utils";
 
 type ProductVariant = {
   id: number;
@@ -41,6 +42,7 @@ type Product = {
   product_name: string;
   productslug?: string;
   categoryname?: string | null;
+  images?: { image: string; color?: string | null; variant?: number | null }[];
   variants?: ProductVariant | ProductVariant[];
 };
 
@@ -49,6 +51,7 @@ type PosCartItem = {
   productId: number;
   productName: string;
   categoryname?: string | null;
+  imageUrl: string;
   variant: ProductVariant;
   qty: number;
 };
@@ -101,6 +104,109 @@ const buildTransactionUid = () =>
     .toString(16)
     .slice(2, 10)
     .toUpperCase()}`;
+
+const getProductImage = (product: Product, variant: ProductVariant) => {
+  const images = product.images || [];
+  const variantImage = images.find((image) => image.variant === variant.id);
+  const colorImage = images.find(
+    (image) => variant.color_code && image.color === variant.color_code,
+  );
+  return variantImage?.image || colorImage?.image || images[0]?.image || "/logo.png";
+};
+
+const PosProductCard = ({
+  product,
+  variant,
+  onAdd,
+}: {
+  product: Product;
+  variant: ProductVariant;
+  onAdd: () => void;
+}) => {
+  const image = getProductImage(product, variant);
+  const convertedPrice = numberValue(variant.price);
+  const discount = numberValue(variant.discount);
+  const finalPrice = unitPrice(variant);
+  const variantLabel =
+    formatVariantSummary(variant as any) ||
+    variant.size ||
+    variant.color_name ||
+    "Default";
+
+  return (
+    <article className="group flex min-w-0 flex-col gap-1 rounded-lg bg-white p-1 dark:bg-neutral-950">
+      <div className="relative h-[280px] overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-900">
+        <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
+          {variant.stock <= 0 ? (
+            <span className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white dark:bg-zinc-300 dark:text-black">
+              Out of stock
+            </span>
+          ) : (
+            <span className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white dark:bg-zinc-300 dark:text-black">
+              Stock {variant.stock}
+            </span>
+          )}
+          {discount > 0 ? (
+            <span className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white dark:bg-zinc-300 dark:text-black">
+              {discount}% Off
+            </span>
+          ) : null}
+        </div>
+        <Image
+          src={image}
+          alt={product.product_name}
+          width={600}
+          height={600}
+          className="h-full w-full object-contain p-4 transition duration-300 group-hover:scale-[1.02]"
+        />
+      </div>
+      <div className="flex min-h-[110px] flex-col justify-between rounded-lg px-2 py-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-medium text-neutral-950 dark:text-neutral-50">
+            {product.product_name}
+          </h2>
+          <p className="mt-1 truncate text-xs text-neutral-500">
+            {[product.categoryname, variantLabel].filter(Boolean).join(" / ")}
+          </p>
+          {variant.color_code ? (
+            <span className="mt-2 inline-flex items-center gap-2 text-xs text-neutral-500">
+              <span
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: variant.color_code }}
+              />
+              {variant.color_name || variant.color_code}
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className={cn("flex items-center gap-2", discount > 0 && "gap-2")}>
+            {discount > 0 ? (
+              <span className="text-sm font-semibold">{money(finalPrice)}</span>
+            ) : null}
+            <span
+              className={cn(
+                "text-sm font-semibold",
+                discount > 0 && "font-normal text-neutral-400 line-through",
+              )}
+            >
+              {money(convertedPrice)}
+            </span>
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            onClick={onAdd}
+            disabled={variant.stock <= 0}
+            className="h-8 px-3"
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+};
 
 const PosPage = () => {
   const { accessToken, hasPermission, role, user } = useAuthUser();
@@ -162,6 +268,7 @@ const PosPage = () => {
       return;
     }
     const key = `${product.id}-${variant.id}`;
+    const imageUrl = getProductImage(product, variant);
     setReceipt(null);
     setCart((current) => {
       const existing = current.find((item) => item.key === key);
@@ -179,6 +286,7 @@ const PosPage = () => {
           productId: product.id,
           productName: product.product_name,
           categoryname: product.categoryname,
+          imageUrl,
           variant,
           qty: 1,
         },
@@ -244,7 +352,7 @@ const PosPage = () => {
   };
 
   return (
-    <div className="flex min-h-full flex-col gap-4 p-4 md:p-6">
+    <main className="mx-auto flex min-h-full w-full max-w-[95rem] flex-col gap-6 px-4 py-5 md:px-6 md:py-8">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-neutral-950 dark:text-neutral-50">
@@ -260,71 +368,37 @@ const PosPage = () => {
       </div>
 
       {!canCreatePos ? (
-        <Card>
-          <CardContent className="py-10 text-sm text-neutral-500">
+        <section className="py-10 text-sm text-neutral-500">
             You need order management permission to create POS orders.
-          </CardContent>
-        </Card>
+        </section>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <Card>
-            <CardHeader className="space-y-4">
-              <CardTitle>Products</CardTitle>
+        <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="min-w-0 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-base font-semibold">Products</h2>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search products"
-                  className="pl-9"
+                  className="h-10 border-none bg-neutral-100 pl-9 shadow-none dark:bg-neutral-900 sm:w-[360px]"
                 />
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
               {isLoading ? (
                 <div className="py-10 text-sm text-neutral-500">Loading products...</div>
               ) : products.length ? (
-                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                   {products.map((product) =>
                     toArray(product.variants).map((variant) => {
-                      const variantLabel =
-                        formatVariantSummary(variant as any) ||
-                        variant.size ||
-                        variant.color_name ||
-                        "Default";
                       return (
-                        <div
+                        <PosProductCard
                           key={`${product.id}-${variant.id}`}
-                          className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <h2 className="truncate text-sm font-medium">
-                                {product.product_name}
-                              </h2>
-                              <p className="mt-1 text-xs text-neutral-500">
-                                {variantLabel}
-                              </p>
-                            </div>
-                            <Badge variant={variant.stock > 0 ? "outline" : "destructive"}>
-                              {variant.stock}
-                            </Badge>
-                          </div>
-                          <div className="mt-3 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold">
-                              {money(unitPrice(variant))}
-                            </span>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => addVariant(product, variant)}
-                              disabled={variant.stock <= 0}
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Add
-                            </Button>
-                          </div>
-                        </div>
+                          product={product}
+                          variant={variant}
+                          onAdd={() => addVariant(product, variant)}
+                        />
                       );
                     }),
                   )}
@@ -334,33 +408,54 @@ const PosPage = () => {
                   No in-stock products found.
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </section>
 
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+          <aside className="space-y-5 xl:sticky xl:top-20">
+            <section className="space-y-4 rounded-lg bg-white p-1 dark:bg-neutral-950">
+              <div className="px-2 pt-2">
+                <h2 className="flex items-center gap-2 text-base font-semibold">
                   <ShoppingCart className="h-5 w-5" />
                   Cart
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h2>
+              </div>
+              <div className="space-y-4 px-2 pb-2">
                 {cart.length ? (
                   <div className="space-y-3">
                     {cart.map((item) => (
                       <div
                         key={item.key}
-                        className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                        className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
-                              {item.productName}
-                            </p>
-                            <p className="text-xs text-neutral-500">
-                              {formatVariantSummary(item.variant as any) || "Default"}
-                            </p>
+                          <div className="flex min-w-0 items-start gap-3">
+                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-white dark:bg-neutral-950">
+                              <Image
+                                src={item.imageUrl}
+                                alt={item.productName}
+                                width={96}
+                                height={96}
+                                className="h-full w-full object-contain p-1.5"
+                              />
+                            </div>
+                            <div className="min-w-0 pt-1">
+                              <p className="truncate text-sm font-medium">
+                                {item.productName}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                {formatVariantSummary(item.variant as any) || "Default"}
+                              </p>
+                              {item.variant.color_code ? (
+                                <span className="mt-1 inline-flex items-center gap-2 text-xs text-neutral-500">
+                                  <span
+                                    className="h-3 w-3 rounded-full"
+                                    style={{
+                                      backgroundColor: item.variant.color_code,
+                                    }}
+                                  />
+                                  {item.variant.color_name || item.variant.color_code}
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                           <Button
                             type="button"
@@ -415,12 +510,12 @@ const PosPage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-neutral-300 py-10 text-center text-sm text-neutral-500 dark:border-neutral-800">
+                  <div className="rounded-lg bg-neutral-50 py-10 text-center text-sm text-neutral-500 dark:bg-neutral-900">
                     Cart is empty.
                   </div>
                 )}
 
-                <div className="space-y-3 border-t pt-4">
+                <div className="space-y-3 pt-2">
                   <div className="grid gap-2">
                     <Label htmlFor="customer-id">Customer user ID (optional)</Label>
                     <Input
@@ -429,6 +524,7 @@ const PosPage = () => {
                       onChange={(event) => setCustomerId(event.target.value)}
                       placeholder="Leave blank for walk-in"
                       inputMode="numeric"
+                      className="border-none bg-neutral-100 shadow-none dark:bg-neutral-900"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -459,7 +555,7 @@ const PosPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-4">
+                <div className="flex items-center justify-between pt-2">
                   <span className="text-sm text-neutral-500">Total</span>
                   <strong className="text-2xl">{money(cartTotal)}</strong>
                 </div>
@@ -471,20 +567,17 @@ const PosPage = () => {
                 >
                   {creating ? "Creating order" : "Complete direct purchase"}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
             {receipt ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Last bill</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+              <section className="space-y-3 rounded-lg bg-white p-3 dark:bg-neutral-950">
+                <h2 className="text-base font-semibold">Last bill</h2>
                   <div className="text-sm">
                     <p className="font-medium">{receipt.order.transactionuid}</p>
                     <p className="text-neutral-500">
                       {receipt.products.length} line item
-                      {receipt.products.length === 1 ? "" : "s"} ·{" "}
+                      {receipt.products.length === 1 ? "" : "s"} -{" "}
                       {money(receipt.order.total_amt)}
                     </p>
                   </div>
@@ -493,13 +586,12 @@ const PosPage = () => {
                     products={receipt.products}
                     createdBy={receipt.createdBy}
                   />
-                </CardContent>
-              </Card>
+              </section>
             ) : null}
-          </div>
+          </aside>
         </div>
       )}
-    </div>
+    </main>
   );
 };
 
