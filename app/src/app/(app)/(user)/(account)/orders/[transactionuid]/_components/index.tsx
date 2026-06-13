@@ -44,6 +44,7 @@ import {
   type StoreSettings,
 } from "@/lib/store-settings";
 import { OrderReceiptActions } from "@/components/billing/order-receipt";
+import { formatMoney } from "@/lib/money";
 
 interface Product {
   id: number;
@@ -344,13 +345,13 @@ const ProductCard = ({
         <Separator className="mt-1 bg-[hsl(var(--custombg))] h-[2px] relative before:absolute before:w-5 before:h-5 before:bg-[hsl(var(--custombg))] before:rounded-full before:-left-5 before:-bottom-2.5 after:absolute after:w-5 after:h-5 after:bg-[hsl(var(--custombg))] after:rounded-full after:-right-5 after:-bottom-2.5" />
         <div className="w-full flex justify-between items-center">
           <div className="w-full p-1 pb-2 gap-2 flex items-center">
-            <p>Total :</p> {data.discount > 0 && <p>रु {data?.total_amt}</p>}{" "}
+            <p>Total :</p> {data.discount > 0 && <p>{formatMoney(data?.total_amt)}</p>}{" "}
             <p
               className={cn(
                 data?.discount > 0 && "line-through text-neutral-950/50",
               )}
             >
-              रु {data?.sub_total}
+              {formatMoney(data?.sub_total)}
             </p>
           </div>
           {data.status === "unpaid" && <Complete_payment data={data} />}

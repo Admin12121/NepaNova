@@ -866,13 +866,13 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 
         orders = Sales.objects.filter(costumer_name=user)
         user_data["total_orders"] = orders.count()
-        user_data["total_spent"] = sum(o.total_amt for o in orders)
+        user_data["total_spent"] = float(sum(o.total_amt for o in orders))
         user_data["orders"] = [
             {
                 "id": o.id,
                 "transactionuid": o.transactionuid,
                 "status": o.status,
-                "total_amt": o.total_amt,
+                "total_amt": float(o.total_amt),
                 "created": o.created,
             }
             for o in orders.order_by("-id")[:10]

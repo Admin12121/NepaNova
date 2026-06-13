@@ -1,17 +1,16 @@
-import CryptoJS from "crypto-js";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-const secretKey =
-  process.env.NEXT_PUBLIC_AUTH_SECRET ||
-  process.env.AUTH_SECRET ||
-  "fallback-secret-key";
+const encodeCheckoutPayload = (data: object) =>
+  btoa(encodeURIComponent(JSON.stringify(data))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+
+const decodeCheckoutPayload = (value: string) => {
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  return JSON.parse(decodeURIComponent(atob(padded)));
+};
 
 export const encryptData = (data: object, router: AppRouterInstance) => {
-  const encurl = CryptoJS.AES.encrypt(
-    JSON.stringify(data),
-    secretKey,
-  ).toString();
-  const encodedUrl = encodeURIComponent(encurl);
+  const encodedUrl = encodeURIComponent(encodeCheckoutPayload(data));
   router.push(`/checkout/${encodedUrl}`);
 };
 
@@ -28,15 +27,11 @@ export const decryptData = (
   encryptedUrl: string,
   router: AppRouterInstance,
 ): Product[] | null => {
-  const decodedUrl = decodeURIComponent(encryptedUrl);
-  const decrypted = CryptoJS.AES.decrypt(decodedUrl, secretKey).toString(
-    CryptoJS.enc.Utf8,
-  );
   try {
-    const parsedDecrypted = JSON.parse(decrypted);
-    return parsedDecrypted;
+    const decodedUrl = decodeURIComponent(encryptedUrl);
+    return decodeCheckoutPayload(decodedUrl);
   } catch (error) {
-    console.error("Failed to parse decrypted data:", error);
+    console.error("Failed to parse checkout data:", error);
     router.push(`/collections/`);
     return null;
   }

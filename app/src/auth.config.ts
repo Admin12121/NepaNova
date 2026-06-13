@@ -38,7 +38,7 @@ interface UserWithToken extends User {
 }
 
 const getApiBaseUrl = () => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) {
     throw new Error("Authentication API URL is not configured");
   }

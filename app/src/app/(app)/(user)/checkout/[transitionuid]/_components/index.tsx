@@ -37,6 +37,7 @@ import { handleClick } from "./animation";
 import Icons from "@/components/navbar/cart/icons";
 import { useDecryptedData } from "@/hooks/dec-data";
 import { useCart } from "@/lib/cart-context";
+import { formatMoney, roundMoney } from "@/lib/money";
 
 interface Product {
   product: number;
@@ -199,7 +200,7 @@ const Checkout = ({ params }: { params: string }) => {
   };
 
   const applyDiscount = (discountAmount: number) => {
-    const newTotalPrice = state.totalPrice.price - discountAmount;
+    const newTotalPrice = roundMoney(state.totalPrice.price - discountAmount);
     dispatch({
       type: "SET_TOTAL_PRICE_AFTER_DISCOUNT",
       payload: { price: newTotalPrice, symbol: state.totalPrice.symbol },
@@ -215,7 +216,7 @@ const Checkout = ({ params }: { params: string }) => {
     });
     dispatch({
       type: "SET_TOTAL_PRICE",
-      payload: { price: totalPrice, symbol: "रु" },
+      payload: { price: roundMoney(totalPrice), symbol: "रु" },
     });
   }, [products]);
 
@@ -290,8 +291,8 @@ const Checkout = ({ params }: { params: string }) => {
 
     const payload = {
       products: state.productData,
-      sub_total: state.totalPrice.price,
-      total_amt: totalAmount,
+      sub_total: roundMoney(state.totalPrice.price),
+      total_amt: roundMoney(totalAmount),
       discount: state.discount,
       redeemData: state.redeemData,
       transactionuid: transaction_uid,
@@ -396,14 +397,14 @@ const Checkout = ({ params }: { params: string }) => {
                 <span className="flex w-full justify-between items-center">
                   <p>Subtotal • {totalPieces} items</p>
                   <p>
-                    {state.totalPrice.symbol} {state.totalPrice.price}
+                    {formatMoney(state.totalPrice.price)}
                   </p>
                 </span>
                 {state.discount > 0 && (
                   <span className="flex w-full justify-between items-center">
                     <p>Discount </p>
                     <p>
-                      - {state.totalPrice.symbol} {state.discount}
+                      - {formatMoney(state.discount)}
                     </p>
                   </span>
                 )}
@@ -423,8 +424,8 @@ const Checkout = ({ params }: { params: string }) => {
                     </p>
                     <p>
                       {state.totalPriceAfterDiscount.price > 0
-                        ? `${state.totalPriceAfterDiscount.symbol} ${state.totalPriceAfterDiscount.price}`
-                        : `${state.totalPrice.symbol} ${state.totalPrice.price}`}
+                        ? formatMoney(state.totalPriceAfterDiscount.price)
+                        : formatMoney(state.totalPrice.price)}
                     </p>
                   </span>
                 </span>
@@ -522,3 +523,4 @@ const Checkout = ({ params }: { params: string }) => {
 };
 
 export default Checkout;
+

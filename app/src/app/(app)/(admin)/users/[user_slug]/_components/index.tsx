@@ -30,6 +30,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { renderBadge } from "@/components/global/renderBadge";
 import { formatVariantSummary } from "@/lib/variant-attributes";
 import { getProductImageSrc, type ProductImageInput } from "@/lib/product-image";
+import { formatMoney } from "@/lib/money";
 
 type AdminUserDetail = {
   id: number;
@@ -109,14 +110,6 @@ type ProductRecord = {
 
 type ProductsByIdsResponse = {
   results?: ProductRecord[];
-};
-
-const formatMoney = (value?: number | string | null) => {
-  const amount = Number(value ?? 0);
-  return `Rs ${amount.toLocaleString("en-NP", {
-    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
 };
 
 const formatDate = (value?: string | null) => {

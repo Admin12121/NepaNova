@@ -33,6 +33,7 @@ import {
 } from "@/lib/store/Service/api";
 import { useAuthUser } from "@/hooks/use-auth-user";
 import { useRouter } from "nextjs-toploader/app";
+import { formatMoney } from "@/lib/money";
 import { Badge as Clip } from "@/components/ui/badge";
 import {
   addDays,
@@ -848,7 +849,7 @@ const Card = ({
               )}
         </p>
         <div className="w-full flex justify-between items-end">
-          <p>Total: रु {total_amt}</p>
+          <p>Total: {formatMoney(total_amt)}</p>
           <span className="flex gap-1 items-center">
             {canManageOrders &&
               (status === "cancelled" || status === "unpaid") && (
@@ -955,3 +956,4 @@ type CardType = {
 };
 
 export default Kanban;
+

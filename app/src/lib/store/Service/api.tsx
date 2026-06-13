@@ -25,18 +25,28 @@ const createHeaders = (
 const buildQueryParams = (
   params: Record<string, string | number | string[] | undefined>,
 ) => {
-  const queryParams = Object.entries(params)
-    .filter(
-      ([_, value]) =>
-        value !== undefined &&
-        value !== null &&
-        value !== "" &&
-        value !== 0 &&
-        !(Array.isArray(value) && value.length === 0),
-    )
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
-  return queryParams ? `?${queryParams}` : "";
+  const queryParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => queryParams.append(key, String(item)));
+      return;
+    }
+
+    queryParams.set(key, String(value));
+  });
+
+  const query = queryParams.toString();
+  return query ? `?${query}` : "";
 };
 
 export const userAuthapi = createApi({

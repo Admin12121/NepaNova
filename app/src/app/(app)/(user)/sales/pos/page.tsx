@@ -22,6 +22,7 @@ import {
   usePostPosSaleMutation,
   useProductsViewQuery,
 } from "@/lib/store/Service/api";
+import { formatMoney, roundMoney } from "@/lib/money";
 import { formatVariantSummary } from "@/lib/variant-attributes";
 import { cn } from "@/lib/utils";
 
@@ -93,11 +94,7 @@ const unitPrice = (variant: ProductVariant) => {
   return price - (price * discount) / 100;
 };
 
-const money = (value: number) =>
-  `Rs ${value.toLocaleString("en-NP", {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
+const money = (value: number | string | null | undefined) => formatMoney(value);
 
 const buildTransactionUid = () =>
   `POS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${Math.random()
@@ -231,10 +228,10 @@ const PosPage = () => {
   );
 
   const products: Product[] = data?.results || [];
-  const cartTotal = cart.reduce(
+  const cartTotal = roundMoney(cart.reduce(
     (total, item) => total + unitPrice(item.variant) * item.qty,
     0,
-  );
+  ));
   const cartQty = cart.reduce((total, item) => total + item.qty, 0);
 
   const receiptProducts = useMemo(
@@ -314,7 +311,7 @@ const PosPage = () => {
           transactionuid,
           payment_method: paymentMethod,
           source,
-          customer_id: customerId ? Number(customerId) : undefined,
+          customer_identifier: customerId.trim() || undefined,
           products: cart.map((item) => ({
             product: item.productId,
             variant: item.variant.id,
@@ -330,8 +327,8 @@ const PosPage = () => {
           id: sale.id,
           transactionuid: sale.transactionuid || transactionuid,
           status: sale.status || "successful",
-          sub_total: numberValue(sale.sub_total || cartTotal),
-          total_amt: numberValue(sale.total_amt || cartTotal),
+          sub_total: roundMoney(numberValue(sale.sub_total || cartTotal)),
+          total_amt: roundMoney(numberValue(sale.total_amt || cartTotal)),
           discount: numberValue(sale.discount),
           payment_method: sale.payment_method || paymentMethod,
           created: sale.created || new Date().toISOString(),
@@ -517,13 +514,14 @@ const PosPage = () => {
 
                 <div className="space-y-3 pt-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="customer-id">Customer user ID (optional)</Label>
+                    <Label htmlFor="customer-identifier">
+                      Customer email, username, or phone (optional)
+                    </Label>
                     <Input
-                      id="customer-id"
+                      id="customer-identifier"
                       value={customerId}
                       onChange={(event) => setCustomerId(event.target.value)}
                       placeholder="Leave blank for walk-in"
-                      inputMode="numeric"
                       className="border-none bg-neutral-100 shadow-none dark:bg-neutral-900"
                     />
                   </div>

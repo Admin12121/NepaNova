@@ -54,8 +54,8 @@ class Sales(models.Model):
         ],
         default="pending",
     )
-    total_amt = models.FloatField()
-    sub_total = models.FloatField()
+    total_amt = models.DecimalField(max_digits=12, decimal_places=2)
+    sub_total = models.DecimalField(max_digits=12, decimal_places=2)
     shipping = models.ForeignKey(
         DeliveryAddress,
         on_delete=models.SET_DEFAULT,
@@ -63,7 +63,7 @@ class Sales(models.Model):
         blank=True,
         default=None,
     )
-    discount = models.FloatField(null=True, blank=True)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     payment_method = models.CharField(max_length=100, null=True, blank=True)
     redeem_data = models.CharField(max_length=100, null=True, blank=True)
     payment_intent_id = models.CharField(max_length=100, null=True, blank=True)
@@ -188,6 +188,6 @@ class Saled_Products(models.Model):
     variant = models.ForeignKey(
         ProductVariant, on_delete=models.SET_DEFAULT, null=True, default=None
     )
-    price = models.FloatField()
-    qty = models.FloatField()
-    total = models.FloatField()
+    price = models.DecimalField(max_digits=12, decimal_places=2)
+    qty = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=12, decimal_places=2)

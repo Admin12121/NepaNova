@@ -4,6 +4,7 @@ import { Download, Mail, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { formatVariantSummary } from "@/lib/variant-attributes";
+import { formatMoney } from "@/lib/money";
 
 type ReceiptAddress = {
   address?: string | null;
@@ -41,13 +42,7 @@ const organization = {
   registration: "390352/82/83",
 };
 
-const money = (value?: number | string | null) => {
-  const amount = Number(value ?? 0);
-  return `Rs ${amount.toLocaleString("en-NP", {
-    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`;
-};
+const money = (value?: number | string | null) => formatMoney(value);
 
 const dateTime = (value?: string | null) => {
   const date = value ? new Date(value) : new Date();

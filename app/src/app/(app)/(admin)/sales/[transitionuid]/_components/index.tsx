@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { formatMoney } from "@/lib/money";
 import {
   addDays,
   getStoreSettings,
@@ -524,7 +525,7 @@ const ProductCard = ({
           </VoucherSkleton>
           <Separator className="mt-1" />
           <div className="w-full p-1 py-2 flex justify-between items-center">
-            <p>Total: रु {data?.total_amt}</p>
+            <p>Total: {formatMoney(data?.total_amt)}</p>
           </div>
           <div className="flex justify-end pb-2">
             <OrderReceiptActions
@@ -653,3 +654,4 @@ export const PageSkeleton = ({
 };
 
 export default OrderRetrieve;
+

@@ -27,6 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PickDropPackDialog } from "./pickdrop-pack-dialog";
+import { formatMoney } from "@/lib/money";
 
 interface CartItem {
   id: number;
@@ -615,7 +616,7 @@ const OrderDetails = ({
           </span>
         </div>
         <div className="w-full p-2 flex justify-between items-center">
-          <p>Total: रु {order.total_amt}</p>
+          <p>Total: {formatMoney(order.total_amt)}</p>
           <span
             className={cn(buttonVariants({ variant: "default" }))}
             onClick={() => router.push(`/sales/${order.transactionuid}`)}
@@ -677,3 +678,4 @@ const RightIcon = ({ ...props }) => {
 };
 
 export default Orders;
+

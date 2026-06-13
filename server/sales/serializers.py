@@ -5,12 +5,31 @@ from account.serializers import DeliveryAddressSerializer
 class RedeemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Redeem_Code
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "code",
+            "type",
+            "discount",
+            "minimum",
+            "limit",
+            "used",
+            "valid_until",
+            "is_active",
+        ]
 
 class Saled_ProductsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Saled_Products
-        fields = "__all__"
+        fields = [
+            "id",
+            "transition",
+            "product",
+            "variant",
+            "price",
+            "qty",
+            "total",
+        ]
 
 
 class ShipmentSerializer(serializers.ModelSerializer):
@@ -61,7 +80,39 @@ class SaleQuertSetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sales
-        fields = "__all__"
+        fields = [
+            "id",
+            "costumer_name",
+            "created_by",
+            "created_by_email",
+            "created_by_name",
+            "costumer_email",
+            "costumer_full_name",
+            "transactionuid",
+            "status",
+            "total_amt",
+            "sub_total",
+            "shipping",
+            "discount",
+            "payment_method",
+            "redeem_data",
+            "payment_intent_id",
+            "payment_json",
+            "order_source",
+            "direct_purchase",
+            "created",
+            "updated_at",
+            "expected_delivery_date",
+            "delivery_delay_reason",
+            "shipment",
+        ]
+        read_only_fields = [
+            "created_by_email",
+            "created_by_name",
+            "costumer_email",
+            "costumer_full_name",
+            "shipment",
+        ]
 
     def get_created_by_name(self, obj):
         if not obj.created_by:
@@ -95,7 +146,42 @@ class SalesDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sales
-        fields = "__all__"
+        fields = [
+            "id",
+            "costumer_name",
+            "created_by",
+            "created_by_email",
+            "created_by_name",
+            "costumer_email",
+            "costumer_full_name",
+            "transactionuid",
+            "status",
+            "total_amt",
+            "sub_total",
+            "shipping",
+            "discount",
+            "payment_method",
+            "redeem_data",
+            "payment_intent_id",
+            "payment_json",
+            "order_source",
+            "direct_purchase",
+            "created",
+            "updated_at",
+            "expected_delivery_date",
+            "delivery_delay_reason",
+            "products",
+            "shipment",
+        ]
+        read_only_fields = [
+            "created_by",
+            "created_by_email",
+            "created_by_name",
+            "costumer_email",
+            "costumer_full_name",
+            "products",
+            "shipment",
+        ]
 
     def get_created_by_name(self, obj):
         if not obj.created_by:
@@ -122,7 +208,27 @@ class SalesPostDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sales
-        fields = "__all__"
+        fields = [
+            "id",
+            "costumer_name",
+            "transactionuid",
+            "status",
+            "total_amt",
+            "sub_total",
+            "shipping",
+            "discount",
+            "payment_method",
+            "redeem_data",
+            "payment_intent_id",
+            "payment_json",
+            "order_source",
+            "direct_purchase",
+            "created",
+            "updated_at",
+            "expected_delivery_date",
+            "delivery_delay_reason",
+            "products",
+        ]
 
 
 

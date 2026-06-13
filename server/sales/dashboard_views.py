@@ -121,10 +121,10 @@ class DashboardStatsView(APIView):
         return Response(
             {
                 # Revenue (only from successful/completed orders)
-                "total_revenue": round(total_revenue, 2),
-                "monthly_revenue": round(monthly_revenue, 2),
+                "total_revenue": float(round(total_revenue, 2)),
+                "monthly_revenue": float(round(monthly_revenue, 2)),
                 "revenue_change": round(revenue_change, 1),
-                "avg_order_value": round(avg_order_value, 2),
+                "avg_order_value": float(round(avg_order_value, 2)),
                 # Orders
                 "total_orders": total_orders,
                 "pending_orders": pending_orders,
@@ -201,8 +201,8 @@ class SalesChartView(APIView):
                 daily_data.append(
                     {
                         "date": current_date.isoformat(),
-                        "revenue": round(
-                            sales_by_date[current_date]["revenue"] or 0, 2
+                        "revenue": float(
+                            round(sales_by_date[current_date]["revenue"] or 0, 2)
                         ),
                         "orders": sales_by_date[current_date]["orders"],
                     }
@@ -226,7 +226,7 @@ class SalesChartView(APIView):
             {
                 "status": d["status"],
                 "count": d["count"],
-                "total": round(d["total"] or 0, 2),
+                "total": float(round(d["total"] or 0, 2)),
             }
             for d in status_data
         ]
@@ -270,7 +270,7 @@ class TopProductsView(APIView):
                     "name": p["product__product_name"],
                     "slug": p["product__productslug"],
                     "quantity_sold": round(p["total_qty"], 0),
-                    "revenue": round(p["total_revenue"], 2),
+                    "revenue": float(round(p["total_revenue"], 2)),
                     "image": image.image.url if image else None,
                 }
             )
@@ -303,7 +303,7 @@ class RecentOrdersView(APIView):
                     if order.costumer_name
                     else "Guest",
                     "email": order.costumer_name.email if order.costumer_name else None,
-                    "total": round(order.total_amt, 2),
+                    "total": float(round(order.total_amt, 2)),
                     "status": order.status,
                     "payment_method": order.payment_method,
                     "created": order.created.isoformat() if order.created else None,

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { renderBadge } from "@/components/global/renderBadge";
 import { addDays, type StoreSettings } from "@/lib/store-settings";
+import { formatMoney } from "@/lib/money";
 
 
 export const OrderComponent = ({
@@ -175,7 +176,7 @@ const OrderDetails = ({
         <div className="w-full p-2 flex justify-between items-center">
           <p>
             Total: रु {" "}
-            {order.total_amt}
+            {formatMoney(order.total_amt)}
           </p>
           <span
             className={cn(buttonVariants({ variant: "default" }))}
@@ -188,3 +189,4 @@ const OrderDetails = ({
     </AccordionTrigger>
   );
 };
+

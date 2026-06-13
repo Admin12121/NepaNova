@@ -4,4 +4,4 @@ from .models import Layout
 class LayoutSerializer(serializers.ModelSerializer):
     class Meta:
         model = Layout
-        fields = '__all__'
+        fields = ['id', 'slug', 'config']

@@ -77,6 +77,7 @@ import {
 } from "@/components/ui/popover";
 
 import { useAuthUser } from "@/hooks/use-auth-user";
+import { formatMoney } from "@/lib/money";
 import {
   useGetDashboardStatsQuery,
   useGetSalesChartQuery,
@@ -249,14 +250,14 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Revenue"
-          value={`Rs ${stats?.total_revenue?.toLocaleString() ?? 0}`}
+          value={formatMoney(stats?.total_revenue)}
           description={`${stats?.revenue_change !== undefined ? (stats.revenue_change >= 0 ? "+" : "") + stats.revenue_change.toFixed(1) : "0"}% from last period`}
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
           loading={statsLoading}
         />
         <StatsCard
           title="Monthly Revenue"
-          value={`Rs ${stats?.monthly_revenue?.toLocaleString() ?? 0}`}
+          value={formatMoney(stats?.monthly_revenue)}
           description="Revenue this month"
           icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
           loading={statsLoading}
@@ -486,7 +487,7 @@ export default function DashboardPage() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              Rs {order.total.toLocaleString()}
+                              {formatMoney(order.total)}
                             </TableCell>
                           </TableRow>
                         ))
@@ -545,7 +546,7 @@ export default function DashboardPage() {
                             </p>
                           </div>
                           <div className="ml-auto font-medium text-sm">
-                            Rs {product.revenue.toLocaleString()}
+                            {formatMoney(product.revenue)}
                           </div>
                         </div>
                       ))

@@ -309,14 +309,13 @@ class TamperDetectionMiddleware(MiddlewareMixin):
 
         response_data = {
             "status": "BLOCKED",
-            "threat_level": "CRITICAL",
+            "threat_level": "HIGH",
             "threat_type": threat_type,
             "threat_id": f"THREAT-{threat_id}",
-            "message": "⚠️ SECURITY VIOLATION DETECTED — YOUR REQUEST HAS BEEN BLOCKED",
+            "message": "Security policy blocked this request.",
             "warning": (
-                "Your request has been intercepted by our security system. "
-                "Tampering, interception, or manipulation of requests is strictly prohibited. "
-                "Your device fingerprint, IP address, and all request metadata have been captured and logged."
+                "The request matched configured security rules. "
+                "If this was legitimate traffic, contact support with the threat id."
             ),
             "detections": detections,
             "your_data": {
@@ -329,20 +328,14 @@ class TamperDetectionMiddleware(MiddlewareMixin):
                 "secure_connection": device_data["is_secure"],
             },
             "security_notice": (
-                "All activities on this system are monitored and recorded. "
-                "Evidence of unauthorized access, tampering, or exploitation attempts "
-                "will be reported to relevant authorities. "
-                "Unauthorized access is a violation of applicable cyber crime laws."
+                "Security events may be logged for abuse prevention and incident review."
             ),
             "recommendations": [
-                "Stop using interception/proxy tools against this application.",
-                "Do not attempt to manipulate or replay requests.",
-                "Do not attempt SQL injection, XSS, or other attack vectors.",
-                "Continued attempts will result in permanent IP ban.",
-                "Legal action may be pursued for persistent attacks.",
+                "Review request payload and headers.",
+                "Retry from the normal application flow.",
+                "Contact support if the request should be allowed.",
             ],
         }
-
         response = JsonResponse(response_data, status=403)
         response["X-Security-Status"] = "BLOCKED"
         response["X-Threat-ID"] = f"THREAT-{threat_id}"
@@ -360,6 +353,9 @@ class TamperDetectionMiddleware(MiddlewareMixin):
         return origin == frontend_url or referer.startswith(frontend_url)
 
     def process_request(self, request):
+        if not getattr(settings, "TAMPER_DETECTION_ENABLED", False):
+            return None
+
         if self._is_trusted_origin(request):
             return None
 
@@ -391,6 +387,8 @@ class TamperDetectionMiddleware(MiddlewareMixin):
         return None
 
     def process_response(self, request, response):
-        response["X-Security"] = "Active"
+        if getattr(settings, "TAMPER_DETECTION_ENABLED", False):
+            response["X-Security"] = "Active"
         response["X-Content-Type-Options"] = "nosniff"
         return response
+

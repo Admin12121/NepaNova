@@ -9,12 +9,13 @@ class NewsLetterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NewLetter
-        fields = '__all__'
+        fields = ['id', 'email']
 
 class SiteViewLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteViewLog
-        fields = '__all__'
+        fields = ['id', 'user', 'country', 'city', 'timestamp', 'user_agent']
+        read_only_fields = ['id', 'timestamp']
 
 class BulkUserActionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -126,12 +127,17 @@ class AdminUserDataSerializer(serializers.ModelSerializer):
 class UserDeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDevice
-        fields = '__all__'
+        fields = [
+            'id', 'user', 'device_type', 'device_os', 'last_login',
+            'ip_address', 'signature'
+        ]
+        read_only_fields = ['id', 'user', 'last_login']
 
 class RbacPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = RbacPermission
-        fields = '__all__'
+        fields = ['id', 'code', 'name', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class RoleMemberSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -213,4 +219,5 @@ class DeliveryAddressSerializer(serializers.ModelSerializer):
 class SearchHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SearchHistory
-        fields = '__all__'
+        fields = ['id', 'user', 'keyword', 'search_date']
+        read_only_fields = ['id', 'user', 'search_date']

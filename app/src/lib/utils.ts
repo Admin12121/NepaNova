@@ -3,10 +3,8 @@ import { twMerge } from "tailwind-merge";
 import CryptoJS from "crypto-js";
 import { EventEmitter } from "events";
 
-const AUTH_SECRET =
-  process.env.NEXT_PUBLIC_AUTH_SECRET ||
-  process.env.AUTH_SECRET ||
-  "fallback-secret-key";
+const LEGACY_AUTH_SECRET = process.env.AUTH_SECRET;
+const WISHLIST_STORAGE_KEY = "wishlist-items";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -30,47 +28,45 @@ export function getCookie(name: string): string | null {
 }
 
 export const updateWishlist = (productId: string): void => {
-  const encryptedWishlist = localStorage.getItem("wishlist");
-  const wishlist = encryptedWishlist
-    ? JSON.parse(
-        CryptoJS.AES.decrypt(encryptedWishlist, AUTH_SECRET).toString(
-          CryptoJS.enc.Utf8,
-        ),
-      )
-    : [];
+  const wishlist = getWishlist();
   const productIndex = wishlist.indexOf(productId);
   if (productIndex > -1) {
     wishlist.splice(productIndex, 1);
   } else {
     wishlist.push(productId);
   }
-  const encryptedData = CryptoJS.AES.encrypt(
-    JSON.stringify(wishlist),
-    AUTH_SECRET,
-  ).toString();
-  localStorage.setItem("wishlist", encryptedData);
+  localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlist));
 };
 
 export const isProductInWishlist = (productId: string): boolean => {
-  const encryptedWishlist = localStorage.getItem("wishlist");
-  if (!encryptedWishlist) return false;
-  const wishlist = JSON.parse(
-    CryptoJS.AES.decrypt(encryptedWishlist, AUTH_SECRET).toString(
-      CryptoJS.enc.Utf8,
-    ),
-  );
-  return wishlist.includes(productId);
+  return getWishlist().includes(productId);
 };
 
 export const getWishlist = (): string[] => {
   if (typeof window === "undefined") return [];
+  const wishlist = localStorage.getItem(WISHLIST_STORAGE_KEY);
+  if (wishlist) {
+    try {
+      return JSON.parse(wishlist);
+    } catch {
+      return [];
+    }
+  }
+
   const encryptedWishlist = localStorage.getItem("wishlist");
-  if (!encryptedWishlist) return [];
-  return JSON.parse(
-    CryptoJS.AES.decrypt(encryptedWishlist, AUTH_SECRET).toString(
-      CryptoJS.enc.Utf8,
-    ),
-  );
+  if (!encryptedWishlist || !LEGACY_AUTH_SECRET) return [];
+  try {
+    const migrated = JSON.parse(
+      CryptoJS.AES.decrypt(encryptedWishlist, LEGACY_AUTH_SECRET).toString(
+        CryptoJS.enc.Utf8,
+      ),
+    );
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(migrated));
+    localStorage.removeItem("wishlist");
+    return migrated;
+  } catch {
+    return [];
+  }
 };
 
 interface CartProduct {
@@ -99,10 +95,10 @@ export const getDecryptedProductList = (): CartProduct[] => {
   if (!cartItems) {
     // Fallback: check old encrypted format for migration
     const encryptedProductList = localStorage.getItem("productList");
-    if (encryptedProductList) {
+    if (encryptedProductList && LEGACY_AUTH_SECRET) {
       try {
         const decrypted = JSON.parse(
-          CryptoJS.AES.decrypt(encryptedProductList, AUTH_SECRET).toString(
+          CryptoJS.AES.decrypt(encryptedProductList, LEGACY_AUTH_SECRET).toString(
             CryptoJS.enc.Utf8,
           ),
         );

@@ -391,9 +391,9 @@ class SalesViewSet(viewsets.ModelViewSet):
             created_by=created_by,
             redeem_data=redeem_code_obj.name if redeem_code_obj else None,
             shipping=shipping_instance,
-            discount=float(discount),
-            sub_total=float(subtotal),
-            total_amt=float(total),
+            discount=discount,
+            sub_total=subtotal,
+            total_amt=total,
             transactionuid=transactionuid,
             payment_method=payment_method,
             status=default_status,
@@ -411,9 +411,9 @@ class SalesViewSet(viewsets.ModelViewSet):
                 transition=sale,
                 product=item["product"],
                 variant=item["variant"],
-                price=float(item["unit_price"]),
+                price=item["unit_price"],
                 qty=item["quantity"],
-                total=float(item["line_total"]),
+                total=item["line_total"],
             )
 
         for variant_id, quantity in requested_stock.items():
@@ -452,6 +452,31 @@ class SalesViewSet(viewsets.ModelViewSet):
             status=status_code,
         )
 
+    def _resolve_pos_customer(self, identifier):
+        cleaned = str(identifier or "").strip()
+        if not cleaned:
+            return None
+
+        customer = (
+            User.objects.filter(
+                Q(username__iexact=cleaned)
+                | Q(email__iexact=cleaned)
+                | Q(phone__iexact=cleaned)
+            )
+            .order_by("id")
+            .first()
+        )
+        if not customer:
+            raise serializers.ValidationError(
+                {
+                    "error": (
+                        "Customer not found. Use the customer's exact email, "
+                        "username, or phone number."
+                    )
+                }
+            )
+        return customer
+
     def create(self, request, *args, **kwargs):
         """Create a normal website checkout order with delivery."""
         try:
@@ -476,15 +501,12 @@ class SalesViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="pos")
     def pos(self, request):
         customer = request.user
-        customer_id = request.data.get("customer_id")
-        if customer_id:
-            try:
-                customer = User.objects.get(id=customer_id)
-            except User.DoesNotExist:
-                return Response(
-                    {"error": "Invalid customer user ID."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        try:
+            customer = self._resolve_pos_customer(
+                request.data.get("customer_identifier")
+            ) or request.user
+        except serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
 
         order_source = request.data.get("source") or Sales.SOURCE_POS_WEB
         if order_source not in {Sales.SOURCE_POS_WEB, Sales.SOURCE_POS_LOCAL}:

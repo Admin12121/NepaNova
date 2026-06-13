@@ -45,6 +45,7 @@ import {
   getProductImageSrc,
   shouldCoverProductImage,
 } from "@/lib/product-image";
+import { formatMoney, roundMoney } from "@/lib/money";
 
 const schema = z.object({
   code: z.string().min(1, { message: "Code is required" }),
@@ -182,7 +183,7 @@ export default function Cart() {
   useEffect(() => {
     const { availableItems, outOfStockItems } = getCartItemsWithDetails();
     const { totalPrice } = getTotalPrice(availableItems);
-    const convertedPrice = totalPrice;
+    const convertedPrice = roundMoney(totalPrice);
 
     if (discountData) {
       const calcDis = () => {
@@ -195,7 +196,7 @@ export default function Cart() {
       setDiscountAmount(calcDis);
     }
 
-    setTotal(totalPrice);
+    setTotal(roundMoney(totalPrice));
     setOutOfStockItems(outOfStockItems);
     setCartItemsWithDetails(availableItems);
     setConvertedPrice(convertedPrice);
@@ -257,7 +258,7 @@ export default function Cart() {
           <div className="relative h-[calc(98dvh_-_30px)]">
             <div className="py-2 flex flex-col gap-3 h-[90dvh] overflow-y-auto">
               <h1 className="text-2xl">
-                Your cart total is रु {convertedPrice}
+                Your cart total is {formatMoney(convertedPrice)}
               </h1>
               <span className="flex flex-col gap-2">
                 <VoucherSkleton loading={isLoading}>
@@ -309,12 +310,12 @@ export default function Cart() {
                 <CardBody className="flex text-sm gap-1 flex-col">
                   <span className="flex w-full justify-between items-center">
                     <p>Subtotal</p>
-                    <p>रु {convertedPrice}</p>
+                    <p>{formatMoney(convertedPrice)}</p>
                   </span>
                   {discount > 0 && (
                     <span className="flex w-full justify-between items-center">
                       <p>Discount</p>
-                      <p>रु {discount}</p>
+                      <p>{formatMoney(discount)}</p>
                     </span>
                   )}
                   <span className="flex w-full justify-between items-center">
@@ -328,10 +329,9 @@ export default function Cart() {
                   <span className="flex w-full justify-between items-center">
                     <p>Total </p>
                     <p>
-                      रु{" "}
                       {discount > 0
-                        ? Number(convertedPrice - discount).toFixed(2)
-                        : convertedPrice}
+                        ? formatMoney(convertedPrice - discount)
+                        : formatMoney(convertedPrice)}
                     </p>
                   </span>
                 </CardBody>
@@ -488,7 +488,7 @@ const CartItem = ({
           </p>
           <span className={cn("flex", discount > 0 && " gap-2")}>
             <p className="text-sm">
-              {discount > 0 && `रु ${finalPrice * data.pcs}`}
+              {discount > 0 && formatMoney(finalPrice * data.pcs)}
             </p>
             <p
               className={cn(
@@ -496,7 +496,7 @@ const CartItem = ({
                 discount > 0 && "text-neutral-500 line-through",
               )}
             >
-              रु {convertedPrice * data.pcs}
+              {formatMoney(convertedPrice * data.pcs)}
             </p>
           </span>
         </span>
@@ -504,3 +504,4 @@ const CartItem = ({
     </Card>
   );
 };
+
