@@ -3,11 +3,12 @@ const next = require("next");
 
 const app = next({ dev: false });
 const handle = app.getRequestHandler();
+const port = Number(process.env.PORT || 3002);
 
 app.prepare().then(() => {
     createServer((req, res) => {
         handle(req, res);
-    }).listen(3000, () => {
-        console.log("Next.js running on port " + (process.env.PORT || 3000));
+    }).listen(port, () => {
+        console.log("Next.js running on port " + port);
     });
 });

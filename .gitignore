@@ -1,0 +1,34 @@
+# Runtime secrets
+.env
+.env.*
+!.env.example
+
+# Local-only deployment scripts for VPS bootstrap.
+# Keep these on the VPS or copy manually; CI should only keep the workflow.
+deploy/server/
+
+# Runtime files generated on the VPS
+runtime/
+deploy/nginx/default.conf
+deploy/certbot/
+
+# Local databases and uploaded files
+server/db.sqlite3
+server/media/
+server/static/
+server/logs/
+
+# Dependency/build output
+app/node_modules/
+app/.next/
+app/tsconfig.tsbuildinfo
+server/.venv/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Local notes / generated review reports
+FINAL_PROJECT_ASSESSMENT.md
+pick-drop-integration-report.md
+DEPLOYMENT.md
+data

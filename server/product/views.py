@@ -1,5 +1,6 @@
 import json
 from collections import Counter
+from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -466,16 +467,30 @@ class ProductViewSet(viewsets.ModelViewSet):
         return filters
 
     def _build_price_filters(self, params):
-        min_price = params.get("min_price")
-        max_price = params.get("max_price")
+        min_price = self._parse_price_filter(params.get("min_price"), "min_price")
+        max_price = self._parse_price_filter(params.get("max_price"), "max_price")
         price_filter = Q()
 
-        if min_price:
+        if min_price is not None:
             price_filter &= Q(productvariant__price__gte=min_price)
-        if max_price:
+        if max_price is not None:
             price_filter &= Q(productvariant__price__lte=max_price)
 
         return price_filter
+
+    def _parse_price_filter(self, value, field_name):
+        if value in (None, ""):
+            return None
+
+        try:
+            price = Decimal(str(value))
+        except (InvalidOperation, ValueError):
+            raise ValidationError({field_name: "Enter a valid price."})
+
+        if price <= 0:
+            return None
+
+        return price
 
     def _build_attribute_filters(self, params):
         """Build variant attribute filters while preserving legacy color/size params."""

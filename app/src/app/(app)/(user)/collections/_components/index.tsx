@@ -144,6 +144,8 @@ const CollectionPage = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [isPending, startTransition] = useTransition();
   const [state, dispatch] = useReducer(reducer, initialState);
+  const minPrice = state.min_price > 0 ? state.min_price : undefined;
+  const maxPrice = state.max_price > 0 ? state.max_price : undefined;
   const attributeFilters = useMemo(() => {
     return Object.fromEntries(
       Object.entries(state)
@@ -161,8 +163,8 @@ const CollectionPage = ({
     color: state.color,
     attributeFilters,
     page: state.page,
-    max_price: state.max_price,
-    min_price: state.min_price,
+    max_price: maxPrice,
+    min_price: minPrice,
   });
 
   // Optimize: Add state.page to dependencies and prevent duplicate products

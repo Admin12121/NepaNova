@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     # Local apps
     "account.apps.AccountConfig",
     "product",
@@ -93,24 +94,30 @@ WSGI_APPLICATION = "server.wsgi.application"
 
 AUTH_USER_MODEL = "account.User"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+DB_ENGINE = config("DB_ENGINE", default="sqlite").strip().lower()
+if DB_ENGINE == "mysql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "HOST": config("DB_HOST", default="127.0.0.1"),
+            "PORT": config("DB_PORT", default="3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+            "CONN_MAX_AGE": config("DB_CONN_MAX_AGE", default=60, cast=int),
+        }
     }
-}
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": config("DB_NAME"),
-#         "USER": config("DB_USER"),
-#         "PASSWORD": config("DB_PASSWORD"),
-#         "HOST": config("DB_HOST"),
-#         "PORT": "3306",
-#         "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
-#     }
-# }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -163,6 +170,16 @@ RESEND_FROM_EMAIL = config(
 ) or "NepaNova Impact <onboarding@resend.dev>"
 DEFAULT_FROM_EMAIL = RESEND_FROM_EMAIL
 
+NESTSMS_BASE_URL = config(
+    "NESTSMS_BASE_URL",
+    default="https://auth.nestsms.com/api/v1/sms",
+).rstrip("/")
+NESTSMS_API_KEY = config("NESTSMS_API_KEY", default="")
+NESTSMS_OTP_TEMPLATE_ID = config("NESTSMS_OTP_TEMPLATE_ID", default="")
+NESTSMS_SENDER_ID = config("NESTSMS_SENDER_ID", default="")
+NESTSMS_APP_NAME = config("NESTSMS_APP_NAME", default="NepaNova")
+NESTSMS_TIMEOUT_SECONDS = config("NESTSMS_TIMEOUT_SECONDS", default=10, cast=int)
+
 PICKDROP_ENABLED = config("PICKDROP_ENABLED", default=False, cast=bool)
 PICKDROP_BASE_URL = config("PICKDROP_BASE_URL", default="").rstrip("/")
 PICKDROP_API_KEY = config("PICKDROP_API_KEY", default="")
@@ -180,8 +197,12 @@ SEED_ADMIN_LAST_NAME = config("SEED_ADMIN_LAST_NAME", default="User")
 SEED_ADMIN_USERNAME = config("SEED_ADMIN_USERNAME", default="@admin")
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=config("JWT_ACCESS_TOKEN_MINUTES", default=30, cast=int)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=config("JWT_REFRESH_TOKEN_DAYS", default=7, cast=int)
+    ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "SIGNING_KEY": config("JWT_SECRET"),
@@ -191,6 +212,10 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "JTI_CLAIM": "jti",
 }
+
+TAMPER_DETECTION_ENABLED = config(
+    "TAMPER_DETECTION_ENABLED", default=False, cast=bool
+)
 
 CORS_ALLOWED_ORIGINS = list(
     {
@@ -205,6 +230,8 @@ CORS_ALLOWED_ORIGINS = list(
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", default=True, cast=bool)
 CSRF_COOKIE_SECURE = config(
     "CSRF_COOKIE_SECURE", default=not DEBUG and not IS_LOCAL_HTTP, cast=bool
 )
