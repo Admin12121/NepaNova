@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PhoneOtpRequestSchema } from "@/schemas";
-
-const getApiBaseUrl = () => {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    throw new Error("Authentication API URL is not configured");
-  }
-
-  return apiUrl.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
-};
-
-const parseJsonResponse = async (response: Response) => {
-  const contentType = response.headers.get("content-type") || "";
-  const text = await response.text();
-
-  if (!contentType.includes("application/json")) {
-    throw new Error("Authentication API returned a non-JSON response.");
-  }
-
-  return JSON.parse(text);
-};
+import { getServerApiBaseUrl, parseJsonResponse } from "@/lib/server-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await fetch(
-      `${getApiBaseUrl()}/api/accounts/users/phone-otp/request/`,
+      `${getServerApiBaseUrl()}/api/accounts/users/phone-otp/request/`,
       {
         method: "POST",
         headers: {

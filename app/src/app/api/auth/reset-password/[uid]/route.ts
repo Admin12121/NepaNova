@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OtpSchema, PasswordSchema } from "@/schemas/index";
+import { getServerApiBaseUrl, parseJsonResponse } from "@/lib/server-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const { otp, uid } = validated.data;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/accounts/reset_password/`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/accounts/reset_password/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await parseJsonResponse(response);
       let firstError = "Failed to Verify OTP";
       for (const key in errorData.errors) {
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = await parseJsonResponse(response);
 
     return NextResponse.json(
       {
@@ -70,7 +71,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
     const { password, uid, token } = validated.data;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/accounts/reset_password/`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/accounts/reset_password/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -79,7 +80,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await parseJsonResponse(response);
       let firstError = "Failed to Verify OTP";
       for (const key in errorData.errors) {
 

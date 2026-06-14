@@ -5,6 +5,7 @@ import type { JWT } from "next-auth/jwt";
 import type { Session } from "next-auth";
 import Google from "next-auth/providers/google";
 import { decodeJwt } from "jose";
+import { getServerApiBaseUrl, parseJsonResponse } from "@/lib/server-api";
 
 declare module "next-auth/jwt" {
   interface JWT {
@@ -37,32 +38,6 @@ interface UserWithToken extends User {
   message?: string;
 }
 
-const getApiBaseUrl = () => {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    throw new Error("Authentication API URL is not configured");
-  }
-
-  return apiUrl.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
-};
-
-const parseJsonResponse = async (response: Response) => {
-  const contentType = response.headers.get("content-type") || "";
-  const text = await response.text();
-
-  if (!contentType.includes("application/json")) {
-    throw new Error(
-      "Authentication API returned a non-JSON response. Check API_URL/NEXT_PUBLIC_API_URL points to the Django API host.",
-    );
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error("Authentication API returned invalid JSON");
-  }
-};
-
 export default {
   pages: {
     signIn: "/auth/login",
@@ -83,7 +58,7 @@ export default {
 
           const { phone, otp } = validatedFields.data;
           const response = await fetch(
-            `${getApiBaseUrl()}/api/accounts/users/phone-otp/verify/`,
+            `${getServerApiBaseUrl()}/api/accounts/users/phone-otp/verify/`,
             {
               method: "POST",
               headers: {
@@ -110,7 +85,7 @@ export default {
         }
         const { email, password } = ValidateFields.data;
         const response = await fetch(
-          `${getApiBaseUrl()}/api/accounts/users/login/`,
+          `${getServerApiBaseUrl()}/api/accounts/users/login/`,
           {
             method: "POST",
             headers: {
@@ -148,7 +123,7 @@ export default {
       }
       if (account?.provider !== "credentials") {
         const response = await fetch(
-          `${getApiBaseUrl()}/api/accounts/users/social_login/`,
+          `${getServerApiBaseUrl()}/api/accounts/users/social_login/`,
           {
             method: "POST",
             headers: {

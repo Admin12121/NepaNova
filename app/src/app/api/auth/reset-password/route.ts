@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ResetPasswordSchema } from "@/schemas/index";
+import { getServerApiBaseUrl, parseJsonResponse } from "@/lib/server-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const { email } = validated.data;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/accounts/reset_password/`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/accounts/reset_password/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await parseJsonResponse(response);
       let firstError = "Failed to Send Reset Password Email";
       for (const key in errorData.errors) {
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = await parseJsonResponse(response);
 
     return NextResponse.json(
       {

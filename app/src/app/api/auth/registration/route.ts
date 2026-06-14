@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RegistrationSchema } from "@/schemas/index";
+import { getServerApiBaseUrl, parseJsonResponse } from "@/lib/server-api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const { username, email, password, first_name, last_name } = validated.data;
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/accounts/users/`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/accounts/users/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await parseJsonResponse(response);
       let firstError = "Failed to create user";
       for (const key in errorData.errors) {
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    const data = await parseJsonResponse(response);
 
     return NextResponse.json(
       {

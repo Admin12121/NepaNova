@@ -1,0 +1,131 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      frontend_ref: ${{ steps.refs.outputs.frontend_ref }}
+      backend_ref: ${{ steps.refs.outputs.backend_ref }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve image names
+        id: image-name
+        shell: bash
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "frontend=${REGISTRY}/${repo}/frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=${REGISTRY}/${repo}/backend" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Frontend metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image-name.outputs.frontend }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Build and push frontend
+        id: frontend-build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./app/Dockerfile
+          push: true
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_APP_URL || 'https://example.com' }}
+            NEXTAUTH_URL=${{ vars.PUBLIC_APP_URL || 'https://example.com' }}
+            AUTH_URL=${{ vars.PUBLIC_APP_URL || 'https://example.com' }}
+
+      - name: Backend metadata
+        id: backend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image-name.outputs.backend }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Build and push backend
+        id: backend-build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./server/Dockerfile
+          push: true
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Export immutable image references
+        id: refs
+        shell: bash
+        run: |
+          echo "frontend_ref=${{ steps.image-name.outputs.frontend }}@${{ steps.frontend-build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "backend_ref=${{ steps.image-name.outputs.backend }}@${{ steps.backend-build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "${{ secrets.CICD_SSH_PRIVATE_KEY }}" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "${{ secrets.CICD_SSH_KNOWN_HOSTS }}" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Trigger server deploy
+        shell: bash
+        run: |
+          ssh \
+            -i "$HOME/.ssh/deploy_key" \
+            -p "${{ secrets.CICD_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.CICD_SSH_USER }}@${{ secrets.CICD_SSH_HOST }}" \
+            "deploy ${{ needs.build.outputs.frontend_ref }} ${{ needs.build.outputs.backend_ref }}"

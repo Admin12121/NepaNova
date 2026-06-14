@@ -12,6 +12,8 @@ services:
       DB_NAME: ${DB_NAME:?DB_NAME is required}
       DB_USER: ${DB_USER:?DB_USER is required}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      FRONTEND_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      BACKEND_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -30,9 +32,9 @@ services:
       NODE_ENV: production
       PORT: 3000
       API_URL: http://backend:8000
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
-      AUTH_URL: ${AUTH_URL:-${NEXTAUTH_URL}}
+      NEXT_PUBLIC_API_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      NEXTAUTH_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      AUTH_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
     depends_on:
       - backend
     expose:
